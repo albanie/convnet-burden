@@ -4,4 +4,4 @@ function setup_mcnBurden()
 
   root = fileparts(mfilename('fullpath')) ;
   addpath(root) ;
-  addpath(root, [root '/matlab'], [root '/misc'], [root '/core']) ;
+  addpath(root, [root '/matlab'], [root '/core']) ;

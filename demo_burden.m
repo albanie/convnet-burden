@@ -4,10 +4,8 @@ function demo_burden(varargin)
 % Copyright (C) 2017 Samuel Albanie
 % All rights reserved.
 
-  opts.gpus = 4 ;
+  opts.gpus = [] ;
   opts.helper = [] ;
-  opts.inpuVar = 'data' ; 
-  opts.modelType = 'simplenn' ;
   opts.lastConv = 'pool5' ;
   opts.type = 'single' ;
   opts.batchSize = 10 ;
@@ -15,25 +13,19 @@ function demo_burden(varargin)
   opts.modelPath = 'data/models-import/imagenet-matconvnet-alex.mat' ;
   opts = vl_argparse(opts, varargin) ;
 
-  useGpu = numel(opts.gpus) > 0 ; tmp = load(opts.modelPath) ;
-  switch opts.modelType
-    case 'simplenn', net = dagnn.DagNN.fromSimpleNN(tmp) ;
-    case 'dagnn', net = dagnn.DagNN.loadobj(tmp) ;
-  end
-  if isempty(opts.helper)
-    out = Layer.fromDagNN(net) ; 
-  else
-    out = Layer.fromDagNN(net, opts.helper) ; 
-  end
-  net = Net(out{:}) ;
-  if useGpu, net.move('gpu') ; end
-
+  useGpu = numel(opts.gpus) > 0 ;dag = loadDagNN(opts) ; 
   [~,modelName,~] = fileparts(opts.modelPath) ;
+  modelOpts.inputVars = dag.getInputs() ; modelOpts.name = modelName ;
+  opts.modelOpts = modelOpts ; out = toAutonn(dag, opts) ; 
+  net = Net(out{:}) ;
+
+  if useGpu, net.move('gpu') ; end
   imsz = net.meta.normalization.imageSize(1:2) ;
   paramMem = computeMemory(net, 'params', [], opts) ;
   fullMem = computeMemory(net, 'feats', imsz, opts) ;
 
   % find fully convolutional component
+  keyboard
   trunk = Net(out{1}.find(opts.lastConv, 1)) ;
   if useGpu, trunk.move('gpu') ; end
   trunkMem = computeMemory(trunk, 'feats', imsz, opts) ;
@@ -48,37 +40,56 @@ function demo_burden(varargin)
     report(ii).feat = readableMemory(mem) ;
     report(ii).lastSz = lastSz ;
   end
-  printReport(modelName, paramMem, opts.batchSize, report) ;
+  printReport(paramMem, report, opts) ;
   if useGpu, trunk.move('cpu') ; end
 
-  % naive memory cost
-  % computational cost will depend on 
-% ---------------------------------------------------
-function printReport(modelName, paramMem, bs, report)
-% ---------------------------------------------------
-  header = sprintf('Report for %s\n', modelName) ;
+% ------------------------------------------
+function printReport(paramMem, report, opts)
+% ------------------------------------------
+  header = sprintf('Report for %s\n', opts.modelOpts.name) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf(header) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf('memory used by params: %s\n', readableMemory(paramMem)) ;
-  fprintf('memory used by feats with bs %d: \n', bs) ;
+  fprintf('memory used by feats with bs %d: \n', opts.batchSize) ;
   disp(struct2table(report)) ;
 
 % -----------------------------------
 function memStr = readableMemory(mem)
 % -----------------------------------
 % READABLEMEMORY(MEM) convert total raw bytes into more readable summary
-% based on J. Henriques autonn varDisplay() function
+% based on J. Henriques' autonn varDisplay() function
 
   suffixes = {'B ', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'} ;
   place = floor(log(mem) / log(1024)) ;  % 0-based index into 'suffixes'
   place(mem == 0) = 0 ;  % 0 bytes needs special handling
-  num = mem ./ (1024 .^ place) ;
-  
-  memStr = num2str(num, '%.0f')  ;
+  num = mem ./ (1024 .^ place) ; memStr = num2str(num, '%.0f') ; 
   memStr(:,end+1) = ' ' ;
-  memStr = [memStr, char(suffixes{max(1, place + 1)})] ;  % concatenate number and suffix
+  memStr = [memStr, char(suffixes{max(1, place + 1)})] ;  
   memStr(isnan(mem),:) = ' ' ;  % leave invalid values blank
+
+% --------------------------------
+function dag = loadDagNN(opts)
+% --------------------------------
+  stored = load(opts.modelPath) ;
+  if ~isfield(stored, 'params') % simplenn
+    dag = dagnn.DagNN.fromSimpleNN(stored) ;
+  else
+    dag = dagnn.DagNN.loadobj(stored) ;
+  end
+
+% --------------------------------
+function out = toAutonn(net, opts)
+% --------------------------------
+% provide required helper functions for custom architectures
+
+  args = {net} ;
+  if strfind(opts.modelOpts.name, 'faster-rcnn')
+    args = [args {@faster_rcnn_autonn_custom_fn}] ;
+  elseif strfind(opts.modelOpts.name, 'ssd')
+    args = [args {@ssd_autonn_custom_fn}] ;
+  end
+  out = Layer.fromDagNN(args{:}) ;
 
 % ------------------------------------------------------------
 function [mem,lastSz] = computeMemory(net, target, imsz, opts)
@@ -87,7 +98,8 @@ function [mem,lastSz] = computeMemory(net, target, imsz, opts)
   if ~isempty(imsz) 
     x = zeros([imsz 3], opts.type) ; 
     if numel(opts.gpus), x = gpuArray(x) ; end
-    net.eval({opts.inpuVar, x}, 'test') ;
+    keyboard
+    net.eval({opts.modelOpts.inputVars{1}, x}, 'test') ;
   end
 
   params = [net.params.var] ;
