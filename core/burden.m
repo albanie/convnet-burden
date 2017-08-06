@@ -6,6 +6,7 @@ function burden(varargin)
 
   opts.gpus = 4 ;
   opts.helper = [] ;
+  opts.imsz = [224 224] ;
   opts.type = 'single' ;
   opts.batchSize = 128 ;
   opts.lastConvFeats = '' ;
@@ -22,14 +23,19 @@ function burden(varargin)
   opts.modelOpts = modelOpts ; out = toAutonn(dag, opts) ; net = Net(out{:}) ;
 
   if useGpu, net.move('gpu') ; end
-  imsz = net.meta.normalization.imageSize(1:2) ;
+  imsz = opts.imsz ; 
   base.paramMem = computeBurden(net, 'params', imsz, opts) ;
   [featMem,flops] = computeBurden(net, 'full', imsz, opts) ;
   base.featMem = featMem ; base.flops = flops ;
 
   % find fully convolutional component
   if ~isempty(modelOpts.lastConvFeats)
-    trunk = Net(out{1}.find(modelOpts.lastConvFeats, 1)) ;
+    for ii = 1:numel(out) % to avoid hardcoding head ordering, try them in turn
+      try tail = out{ii}.find(modelOpts.lastConvFeats, 1) ; break
+      catch ME, tail = [] ; %#ok -> continue to try remaining heads
+      end
+    end
+    trunk = Net(tail) ;
     if useGpu, trunk.move('gpu') ; end
     %trunkMem = computeMemory(trunk, 'feats', imsz, opts) ;
   else
@@ -43,7 +49,7 @@ function burden(varargin)
     mem = mem * opts.batchSize ; flops = flops * opts.batchSize ;
     report(ii).imsz = sprintf('%d x %d', imsz_) ;
     report(ii).flops = readableFlops(flops) ;
-    report(ii).feat = readableMemory(mem) ;
+    report(ii).featMem = readableMemory(mem) ;
     report(ii).featSz = sprintf('%d x %d x %d', lastFcSz) ;
   end
   printReport(base, report, opts) ;
@@ -57,13 +63,22 @@ function printReport(base, report, opts)
   fprintf(header) ;
   fprintf('Data type of feats and params: %s\n', opts.type) ;
   fprintf('Memory used by params: %s\n', readableMemory(base.paramMem)) ;
-  msg1 = 'Computing for single item batch at imsz %s: \n' ;
-  msg2 = '    Memory consumed by params + full feats: %s\n' ;
+
+  msg1 = 'Computing burden for single item batch at imsz %s: \n' ;
+  msg2 = '    Memory consumed by full feats: %s\n' ;
   msg3 = '    Estimated total flops: %s\n' ;
   baseImsz = report(opts.scales ==1).imsz ;
   fprintf(msg1, baseImsz) ;
-  fprintf(msg2, readableMemory(base.paramMem + base.featMem)) ;
+  fprintf(msg2, readableMemory(base.featMem)) ;
   fprintf(msg3, readableFlops(base.flops)) ;
+
+  msg1 = 'Computing burden for %d item batch at imsz %s: \n' ;
+  msg2 = '    Memory consumed by full feats: %s\n' ;
+  msg3 = '    Estimated total flops: %s\n' ;
+  fprintf(msg1, opts.batchSize, baseImsz) ;
+  fprintf(msg2, readableMemory(opts.batchSize*base.featMem)) ;
+  fprintf(msg3, readableFlops(base.flops * opts.batchSize)) ;
+
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   msg = '\nFeature extraction burden at %s with batch size %d: \n\n' ;
   fprintf(msg, opts.modelOpts.lastConvFeats, opts.batchSize) ;
@@ -116,6 +131,12 @@ function out = toAutonn(net, opts)
     args = [args {@faster_rcnn_autonn_custom_fn}] ;
   elseif strfind(opts.modelOpts.name, 'ssd')
     args = [args {@ssd_autonn_custom_fn}] ;
+  elseif strfind(opts.modelOpts.name, 'rfcn')
+    args = [args {@rfcn_autonn_custom_fn}] ;
+  elseif strfind(opts.modelOpts.name, 'squeezenet')
+    args = [args {@squeezenet_autonn_custom_fn}] ;
+  elseif strfind(opts.modelOpts.name, 'resnext')
+    args = [args {@resnext_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
 
@@ -133,15 +154,37 @@ function last = getLastFullyConv(modelName, opts)
 
   last = opts.lastConvFeats ;
   if ~isempty(last) ; return ; end
-  if strcmp(modelName, 'imagenet-matconvnet-alex'), last = 'pool5' ; elseif strcmp(modelName, 'imagenet-vgg-verydeep-16'), last = 'pool5' ;
-  elseif strcmp(modelName, 'imagenet-resnet-101-dag'), last = 'res5c' ;
+  alexFamily = {'imagenet-matconvnet-alex', ...
+                'imagenet-vgg-f', ...
+                'imagenet-vgg-m', ...
+                'imagenet-vgg-s', ...
+                'imagenet-vgg-m-2048', ...
+                'imagenet-vgg-m-1024', ...
+                'imagenet-vgg-m-128', ...
+                'imagenet-caffe-ref', ...
+                'imagenet-vgg-verydeep-16', ...
+                'imagenet-vgg-verydeep-19', ...
+                'vgg-vd-16-reduced'}  ;
+  resnets = {'imagenet-resnet-50-dag', ...
+             'imagenet-resnet-101-dag', ...
+             'imagenet-resnet-152-dag'} ;
+  resnexts = {'resnext_50_32x4d-pt-mcn', ...
+              'resnext_101_32x4d-pt-mcn', ...
+              'resnext_101_64x4d-pt-mcn'} ;
+  squeezenets = {'squeezenet1_0-pt-mcn', 'squeezenet1_1-pt-mcn'} ;
+  if ismember(modelName, alexFamily), last = 'pool5' ; 
+  elseif ismember(modelName, resnets), last = 'res5c_relu' ; 
+  elseif ismember(modelName, resnexts), last = 'features_7_2_id_relu' ; 
+  elseif ismember(modelName, squeezenets), last = 'features_12_cat' ; 
+  elseif contains(modelName, 'googlenet'), last = 'icp9_out' ; 
+  elseif contains(modelName, 'multipose'), last = 'Mconv6_stage6_L2' ; 
   elseif contains(modelName, 'faster-rcnn') || contains(modelName, 'rfcn') 
     if contains(modelName, 'vggvd'), last = 'relu5_3' ; end
     if contains(modelName, 'res50'), last = 'res5c' ; end
   elseif contains(modelName, 'ssd')
     if contains(modelName, 'vggvd'), last = 'relu4_3' ; end
     if contains(modelName, 'res50'), last = 'res5c' ; end
-  elseif contains(modelName, 'multipose')
+  else
     keyboard
   end
   msg = ['architecture not recognised, last fully convolutional layer must' ...
@@ -155,7 +198,7 @@ function [mem,flops,lastSz] = computeBurden(net, target, imsz, opts)
   flops = 0 ; lastSz = [] ; 
   last = opts.modelOpts.lastConvFeats ;
   params = [net.params.var] ;
-  feats = find(arrayfun(@(x) ~ismember(x, params), 1:2:numel(params))) ;
+  feats = find(arrayfun(@(x) ~ismember(x, params), 1:2:numel(net.vars))) ;
 
   switch target
     case 'params'
@@ -215,14 +258,30 @@ function total = computeFlops(net, varargin)
         pos = find(cellfun(@(x) isequal(x, 'stride'), layer.args)) ;
         stride = layer.args{pos+1} ;
         flops = 2 * numel(outs{1}) * prod(stride) ;
-      case 'vl_nnsoftmax' % counting flops for exp is a bit tricky
+      case 'vl_nnbnorm_wrapper', flops = 0 ; % assume merged at test time
+      case 'vl_nnwsum', flops = numel(outs{1}) ; % count fused multiply-adds
+      case 'vl_nnreshape', flops = 0 ; % essentially free
+      case 'vl_nnflatten', flops = 0 ; % essentially free
+      case 'permute', flops = 0 ; % expensive, but no flops
+      case 'cat', flops = 0 ; % can be expensive, but no flops
+      case 'vl_nnproposalrpn', flops = 0 ; % would be too inaccurate
+      case 'vl_nnmultiboxdetector', flops = 0 ; % would be too inaccurate
+      case 'vl_nnpriorbox', flops = 0 ; % not worth computing
+      case 'vl_nnroipool', flops = 0 ; % would be too inaccurate
+      case 'vl_nnpsroipool', flops = 0 ; % would be too inaccurate
+      case 'vl_nnmask', flops = 0 ; % dropout would be removed during inference
+      case 'vl_nndropout_wrapper', flops = 0 ; % ditto
+      case {'vl_nnscalenorm', 'vl_nnnormalize'} 
+        outSz = size(outs{1}) ; % simplifying assumption: common norm factors
+        normFactors = (1 + 1 + 2 * outSz(3)) * prod(outSz(1:2)) ; 
+        flops = numel(outs{1}) + normFactors ;
+      case {'vl_nnsoftmax', 'vl_nnsoftmaxt'} % counting flops for exp is tricky
         if opts.includeExp
           flops = (2+1+5+1+2)*numel(outs{1}) ;
         else 
           flops = 0 ; 
         end
-      case 'vl_nnbnorm_wrapper'
-        flops = 0 ; % assume that these have been merged at test time
+      case 'root', continue
       otherwise, error('layer %s not recognised', func2str(layer.func)) ;
     end
     total = total + flops ;
