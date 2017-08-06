@@ -1,11 +1,33 @@
-function demo_mcnBurden()
+function compute_burdens(varargin)
+%COMPUTE_BURDENS Compute burden estimates for common architectures
+%   COMPUTE_BURDENS computes estimates of the memory and computational 
+%   requirements of a set of common convolutional neural network architectures.
+%
+%   COMPUTE_BURDENS(..'name', value) accepts the following 
+%   options:
+%
+%   `includeClassifiers` :: true
+%    Compute burden estimates for common image classification architectures.
+%
+%   `includeObjDetectors` :: true
+%    Compute burden estimates for common object detection architectures.
+%
+%   `includeSegmenters` :: true
+%    Compute burden estimates for a few semantic segmentation architectures.
+%
+%   `includeKeypointDetectors` :: true
+%    Compute burden estimates for a few keypoint detection architectures.
+%
+% Copyright (C) 2017 Samuel Albanie 
+% All rights reserved.
 
-  opts.includeClassifiers = 1 ;
+  opts.includeClassifiers = true ;
   opts.includeObjDetectors = 1 ;
   opts.includeSegmenters = 1 ;
   opts.includeKeypointDetectors = 1 ;
   opts.logFile = fullfile(vl_rootnn, 'data/burden/log.txt') ;
   modelDir = fullfile(vl_rootnn, 'data/models-import') ;
+  opts = vl_argparse(opts, varargin) ;
 
   models = {} ;
 
