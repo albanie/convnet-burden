@@ -89,7 +89,7 @@ The input sizes used are "typical" for each of the architectures listed, but can
 * [multipose](https://arxiv.org/abs/1611.08050) - *Cao, Zhe, et al. "Realtime multi-person 2d pose estimation using part affinity fields." arXiv preprint arXiv:1611.08050 (2016)..*  
  
 
-### Notes and Assumptions  
+<h3>Notes and Assumptions</h3>
 
 
 The numbers for each architecture should be reasonably framework agnostic. It is assumed that all weights and activations are stored as floats (with 4 bytes per datum) and that all relus are performed in-place.  Fused multiply-adds are counted as single operations. 
