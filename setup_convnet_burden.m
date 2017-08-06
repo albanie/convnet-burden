@@ -1,7 +1,6 @@
-function setup_mcnBurden()
-%SETUP_MCNBURDEN Sets up mcnBURDEN, by adding its folders 
-% to the Matlab path, as well as setting up mcnFasterBURDEN as a dependency
+function setup_convnet_burden()
+%SETUP_CONVNET_BURDEN Sets up convnet-burden, by adding its folders 
+% to the Matlab path
 
   root = fileparts(mfilename('fullpath')) ;
-  addpath(root) ;
   addpath(root, [root '/matlab'], [root '/core']) ;
