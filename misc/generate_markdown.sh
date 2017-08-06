@@ -7,6 +7,7 @@
 # Licensed under The MIT License [see LICENSE.md for details]
 # Copyright (C) 2017 Samuel Albanie 
 # --------------------------------------------------------
+add_links="false"
 
 function gen_table() {
 # generate markdown table summaries of architectures and give models 
@@ -29,7 +30,19 @@ function gen_table() {
     res=$(echo "$res" | sed "s/_/-/g")
     res=$(echo "$res" | sed "s/-dag//g") 
     res=$(echo "$res" | sed "s/-pt-mcn//g") 
-    echo "$res"
+    #echo "$res"
+
+    # add links to download models
+    if [ "$add_links" = "true" ] ; then
+        mcn_home="(http://www.vlfeat.org/matconvnet/pretrained/)"
+        imported="(http://www.robots.ox.ac.uk/~albanie/models.html)"
+        res=$(echo "$res" | awk '{$2="\\["$2"\\]" ; print}')
+        res=$(echo "$res" | sed 's/\\/ /g') 
+        res="${res//]/]$mcn_home}"
+        echo "$res"
+    else
+        echo "$res"
+    fi
 }
 
 # point this out the dir containiing outputs of the compute_burdens.m script
