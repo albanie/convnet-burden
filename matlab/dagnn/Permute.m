@@ -1,4 +1,7 @@
 classdef Permute < dagnn.ElementWise
+% Copyright (C) 2017 Samuel Albanie 
+% Licensed under The MIT License [see LICENSE.md for details]
+
   properties
     order
   end

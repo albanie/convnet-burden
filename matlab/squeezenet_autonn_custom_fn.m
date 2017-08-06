@@ -1,5 +1,8 @@
 function obj = squeezenet_autonn_custom_fn(block, inputs, ~)
 % SQUEEZENET_AUTONN_CUSTOM_FN autonn custom layer converter
+%
+% Copyright (C) 2017 Samuel Albanie 
+% Licensed under The MIT License [see LICENSE.md for details]
 
   switch class(block)
     case 'dagnn.Permute'

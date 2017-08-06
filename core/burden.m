@@ -2,15 +2,15 @@ function burden(varargin)
 %BURDEN compute memory and computational burden of network
 %
 % Copyright (C) 2017 Samuel Albanie
-% All rights reserved.
+% Licensed under The MIT License [see LICENSE.md for details]
 
-  opts.gpus = 4 ;
+  opts.gpus = 3 ;
   opts.helper = [] ;
   opts.imsz = [224 224] ;
   opts.type = 'single' ;
   opts.batchSize = 128 ;
   opts.lastConvFeats = '' ;
-  opts.scales = 0.5:0.5:4 ;
+  opts.scales = 0.5:0.5:3 ;
   opts.modelPath = 'data/models-import/imagenet-matconvnet-alex.mat' ;
   opts = vl_argparse(opts, varargin) ;
 
@@ -37,7 +37,6 @@ function burden(varargin)
     end
     trunk = Net(tail) ;
     if useGpu, trunk.move('gpu') ; end
-    %trunkMem = computeMemory(trunk, 'feats', imsz, opts) ;
   else
     trunk = net ;
   end
@@ -61,7 +60,8 @@ function printReport(base, report, opts)
   header = sprintf('Report for %s\n', opts.modelOpts.name) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf(header) ;
-  fprintf('Data type of feats and params: %s\n', opts.type) ;
+
+  fprintf('Data type of feats and params: %s\n', opts.type) ; % for humans
   fprintf('Memory used by params: %s\n', readableMemory(base.paramMem)) ;
 
   msg1 = 'Computing burden for single item batch at imsz %s: \n' ;
@@ -78,6 +78,13 @@ function printReport(base, report, opts)
   fprintf(msg1, opts.batchSize, baseImsz) ;
   fprintf(msg2, readableMemory(opts.batchSize*base.featMem)) ;
   fprintf(msg3, readableFlops(base.flops * opts.batchSize)) ;
+
+  % produce output for automated table generation
+  stats = {readableMemory(base.paramMem), ...
+           readableMemory(base.featMem), ...
+           readableFlops(base.flops)} ;
+  markdown = 'MD:: | %s | %s | %s | %s | %s|\n' ; 
+  fprintf(markdown, opts.modelOpts.name, baseImsz, stats{:}) ;
 
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   msg = '\nFeature extraction burden at %s with batch size %d: \n\n' ;
@@ -137,6 +144,8 @@ function out = toAutonn(net, opts)
     args = [args {@squeezenet_autonn_custom_fn}] ;
   elseif strfind(opts.modelOpts.name, 'resnext')
     args = [args {@resnext_autonn_custom_fn}] ;
+  elseif strfind(opts.modelOpts.name, '-fcn')
+    args = [args {@fcn_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
 
@@ -171,19 +180,23 @@ function last = getLastFullyConv(modelName, opts)
   resnexts = {'resnext_50_32x4d-pt-mcn', ...
               'resnext_101_32x4d-pt-mcn', ...
               'resnext_101_64x4d-pt-mcn'} ;
+  fcns = {'pascal-fcn32s-dag', 'pascal-fcn16s-dag', 'pascal-fcn8s-dag'} ;
   squeezenets = {'squeezenet1_0-pt-mcn', 'squeezenet1_1-pt-mcn'} ;
   if ismember(modelName, alexFamily), last = 'pool5' ; 
   elseif ismember(modelName, resnets), last = 'res5c_relu' ; 
   elseif ismember(modelName, resnexts), last = 'features_7_2_id_relu' ; 
   elseif ismember(modelName, squeezenets), last = 'features_12_cat' ; 
+  elseif ismember(modelName, fcns), last = 'score_fr' ;
   elseif contains(modelName, 'googlenet'), last = 'icp9_out' ; 
   elseif contains(modelName, 'multipose'), last = 'Mconv6_stage6_L2' ; 
   elseif contains(modelName, 'faster-rcnn') || contains(modelName, 'rfcn') 
     if contains(modelName, 'vggvd'), last = 'relu5_3' ; end
-    if contains(modelName, 'res50'), last = 'res5c' ; end
+    if contains(modelName, 'res50'), last = 'res5c_relu' ; end
+    if contains(modelName, 'res101'), last = 'res5c_relu' ; end
   elseif contains(modelName, 'ssd')
     if contains(modelName, 'vggvd'), last = 'relu4_3' ; end
-    if contains(modelName, 'res50'), last = 'res5c' ; end
+    if contains(modelName, 'res50'), last = 'res5c_relu' ; end
+    if contains(modelName, 'res101'), last = 'res5c_relu' ; end
   else
     keyboard
   end
@@ -198,7 +211,10 @@ function [mem,flops,lastSz] = computeBurden(net, target, imsz, opts)
   flops = 0 ; lastSz = [] ; 
   last = opts.modelOpts.lastConvFeats ;
   params = [net.params.var] ;
-  feats = find(arrayfun(@(x) ~ismember(x, params), 1:2:numel(net.vars))) ;
+  inputs = cellfun(@(x) net.inputs.(x), fieldnames(net.inputs))' ;
+  feats = 3:2:numel(net.vars) ;
+  keep = arrayfun(@(x) ~ismember(x, [params inputs]), feats) ;
+  feats = feats(keep) ;
 
   switch target
     case 'params'
@@ -252,6 +268,10 @@ function total = computeFlops(net, varargin)
         hasBias = (numel(ins) == 3) ;
         flops = numel(outs{1}) * numel(ins{2}(:,:,:,1)) ;
         if hasBias, flops = flops + numel(outs{1}) ; end
+      case 'vl_nnconvt' 
+        hasBias = (numel(ins) == 3) ;
+        flops = numel(ins{1}) * numel(ins{2}(:,:,1,:)) ;
+        if hasBias, flops = flops + numel(outs{1}) ; end
       case 'vl_nnrelu' % count as comparison + multiply
         flops = 2 * numel(outs{1}) ;
       case 'vl_nnpool' % assume two flops per location
@@ -262,8 +282,11 @@ function total = computeFlops(net, varargin)
       case 'vl_nnwsum', flops = numel(outs{1}) ; % count fused multiply-adds
       case 'vl_nnreshape', flops = 0 ; % essentially free
       case 'vl_nnflatten', flops = 0 ; % essentially free
+      case 'vl_nncrop', flops = 0 ; % index slicing
       case 'permute', flops = 0 ; % expensive, but no flops
       case 'cat', flops = 0 ; % can be expensive, but no flops
+      case 'size', flops = 0 ;
+      case 'max', flops = numel(ins{1}) ; % comparisons
       case 'vl_nnproposalrpn', flops = 0 ; % would be too inaccurate
       case 'vl_nnmultiboxdetector', flops = 0 ; % would be too inaccurate
       case 'vl_nnpriorbox', flops = 0 ; % not worth computing
