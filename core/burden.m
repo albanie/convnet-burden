@@ -25,9 +25,11 @@ function burden(varargin)
 
   if useGpu, net.move('gpu') ; end
   imsz = opts.imsz ; 
-  base.paramMem = computeBurden(net, 'params', imsz, opts) ;
+  baseParams = computeBurden(net, 'params', imsz, opts) ;
+  base.paramMem = sum(baseParams) ;
   [featMem,flops] = computeBurden(net, 'full', imsz, opts) ;
-  base.featMem = featMem ; base.flops = flops ;
+  base.featMem = sum(featMem) ; base.flops = sum(flops) ;
+  plotProfile(baseParams, featMem, flops, opts) ;
 
   % find fully convolutional component
   if ~isempty(modelOpts.lastConvFeats)
@@ -45,12 +47,12 @@ function burden(varargin)
 
   for ii = 1:numel(opts.scales)
     imsz_ = round(imsz * opts.scales(ii)) ;
-    [mem, flops, lastFcSz] = computeBurden(trunk, 'feats', imsz_, opts) ;
-    mem = mem * opts.batchSize ; flops = flops * opts.batchSize ;
+    [mem_, flops_, lastSz] = computeBurden(trunk, 'feats', imsz_, opts) ;
+    mem = sum(mem_) * opts.batchSize ; flops = sum(flops_) * opts.batchSize ;
     report(ii).imsz = sprintf('%d x %d', imsz_) ;
     report(ii).flops = readableFlops(flops) ;
     report(ii).featMem = readableMemory(mem) ;
-    report(ii).featSz = sprintf('%d x %d x %d', lastFcSz) ;
+    report(ii).featSz = sprintf('%d x %d x %d', lastSz) ;
   end
   printReport(base, report, opts) ;
   if useGpu, trunk.move('cpu') ; end
@@ -59,10 +61,11 @@ function burden(varargin)
 function printReport(base, report, opts)
 % --------------------------------------
   modelName = readableName(opts.modelOpts.name) ;
-  header = sprintf('Report for %s\n', opts.modelOpts.name) ;
+
+  % produce readable output 
+  header = sprintf('Report for %s\n', modelName) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf(header) ;
-
   fprintf('Data type of feats and params: %s\n', opts.type) ; % for humans
   fprintf('Memory used by params: %s\n', readableMemory(base.paramMem)) ;
 
@@ -81,79 +84,129 @@ function printReport(base, report, opts)
   fprintf(msg2, readableMemory(opts.batchSize*base.featMem)) ;
   fprintf(msg3, readableFlops(base.flops * opts.batchSize)) ;
 
-  % produce output for automated table generation
+  % produce output for shared table
+  detailedReport = sprintf('reports/%s.md', modelName) ;
   stats = {readableMemory(base.paramMem), ...
            readableMemory(base.featMem), ...
            readableFlops(base.flops)} ;
-  markdown = 'MD:: | %s | %s | %s | %s | %s|\n' ; 
-  fprintf(markdown, opts.modelOpts.name, baseImsz, stats{:}) ;
+  markdown = 'MD:: | [%s](%s) | %s | %s | %s | %s|\n' ; 
+  fprintf(markdown, modelName, detailedReport, baseImsz, stats{:}) ;
 
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   msg = '\nFeature extraction burden at %s with batch size %d: \n\n' ;
   fprintf(msg, opts.modelOpts.lastConvFeats, opts.batchSize) ;
   disp(struct2table(report)) ;
 
-  % generate more detailed reports
-  keyboard
+  % generate detailed report for feature extraction
+  if ~exist(opts.reportDir, 'dir'), mkdir(opts.reportDir) ; end
+  reportPath = fullfile(opts.reportDir, sprintf('%s.md', modelName)) ;
+  header = '### Report for %s\n' ;
+  body = ['Model params %s \n' ...
+          'Estimates for a single full pass of model at input size %s: \n' ...
+          '\n' ...
+          '* Memory required for features: %s \n' ...
+          '* Flops: %s \n' ...
+          '\n' ...
+          'Estimates are given below of the burden of computing the `%s` ' ...
+          'features in the network for different input sizes: \n\n'] ;
+  bodyArgs = {readableMemory(base.paramMem), baseImsz, ...
+             readableMemory(base.featMem), readableFlops(base.flops), ...
+             opts.modelOpts.lastConvFeats} ;
 
-  % produce output for HTML summary
-  header = ['HTML:: <table class="pretrained-models">    \n ' ...
-            'HTML:: <thead>                              \n ' ...
-            'HTML::   <tr>                               \n ' ...
-            'HTML::   <th>model</th>                     \n ' ...
-            'HTML::   <th>input size</th>                \n ' ...
-            'HTML::   <th>flops</th>                     \n ' ...
-            'HTML::   <th>feature memory </th>           \n ' ...
-            'HTML::   <th>feature size </th>             \n ' ...
-            'HTML::   </tr>                              \n ' ...
-            'HTML:: </thead>                             \n ' ...
-            'HTML:: <tbody>                              \n ' ...
-            'HTML:: <tr>                                 \n ' ...
-            ] ;
-  row = ['HTML::   <tr><td> %s </td><td> %s </td><td> %s </td>' ...
-         '<td> %s </td></tr>\n ' ] ;
-  footer = [ ...
-         'HTML:: </tbody>                              \n ' ...
-         'HTML:: </table>                              \n ' ...
-           ] ;
-  fprintf(header) ;
+  tableHeader = '| input size | feature size | feature memory | flops | \n' ;
+  tableRow = ' | %s | %s | %s | %s |\n' ;
+  graphDescription = ['\nA rough outline of where in the network memory is ' ...
+  'allocated to parameters and features and where the greatest computational '...
+  'cost lies is shown below.  The x-axis does not show labels (it becomes hard' ...
+  ' to read with the networks containing hundreds of layers) - it should be ' ...
+  'interpreted as depicting increasing depth from left to right.  The goal is'  ...
+  ' to give some idea of the overall profile of the model: \n'] ;
+  graph = '![%s profile](figs/%s.png)\n' ;
+
+  fid = fopen(reportPath, 'w') ;
+  fprintf(fid, header, modelName) ;
+  fprintf(fid, body, bodyArgs{:}) ;
+  fprintf(fid, tableHeader) ;
   for ii = 1:numel(report)
     rec = report(ii) ;
-    fprintf(row, rec.imsz, rec.flops, rec.featMem, rec.featSz) ;
+    fprintf(fid, tableRow, rec.imsz, rec.featSz, rec.featMem, rec.flops) ;
   end
-  fprintf(footer) ;
+  fprintf(fid, graphDescription) ;
+  fprintf(fid, graph, modelName, modelName) ;
+  fclose(fid) ;
+
+% ----------------------------------------------------
+function plotProfile(baseParams, featMem, flops, opts)
+% ----------------------------------------------------
+  subplot(3,1,1) ; 
+  [~,units,factor] = readableMemory(max(baseParams)) ;
+  scaledParams = baseParams ./ factor ;
+  bar(scaledParams, 'FaceAlpha', 0.6, 'edgecolor','none') ; 
+  title('Parameter memory profile') ;  set(gca,'xtick',[]) ; 
+  ylabel(sprintf('memory (%s)', units)) ;
+
+  subplot(3,1,2) ; 
+  [~,units,factor] = readableMemory(max(featMem)) ;
+  scaledFeats = featMem ./ factor ;
+  bar(scaledFeats, 'FaceAlpha', 0.4, 'FaceColor', 'r', 'edgecolor','none') ; 
+  title('Feature memory profile') ;  set(gca,'xtick',[]) ; 
+  ylabel(sprintf('memory (%s)', units)) ;
+
+  subplot(3,1,3) ; 
+  [~,units,factor] = readableFlops(max(flops)) ;
+  scaledFlops = flops ./ factor ;
+  bar(scaledFlops, 'FaceAlpha', 0.3, 'FaceColor', 'm', 'edgecolor','none') ; 
+  title('Flops profile') ;  set(gca,'xtick',[]) ; 
+  ylabel(sprintf('%sFLOPS', units)) ; xlabel('depth') ;
+  figDir = fullfile(opts.reportDir, 'figs') ;
+  if ~exist(figDir, 'dir'), mkdir(figDir) ; end
+  figName = sprintf('%s.png', readableName(opts.modelOpts.name)) ;
+  figPath = fullfile(figDir, figName)  ;
+  print(figPath, '-dpng') ;
 
 % -------------------------------------
 function name = readableName(modelName)
 % -------------------------------------
-% READABLENAME(MODELNAME) renames the model for easier reading
-keyboard
+% READABLENAME(MODELNAME) renames the model to its canonical name 
+% for easier reading
 
-% -----------------------------------
-function memStr = readableMemory(mem)
-% -----------------------------------
+name = strrep(modelName, '_', '-') ; % use consistent separators
+name = strrep(name, 'imagenet-', '') ; % clean up prefixes
+name = strrep(name, '-pt-mcn', '') ; % clean up suffixes
+name = strrep(name, '-dag', '') ; % clean up suffixes
+name = strrep(name, 'verydeep', 'vd') ; % consistent naming
+name = strrep(name, 'reduced', 'atrous') ; % consistent naming
+
+switch name % handle special cases
+  case 'matconvnet-alex', name = 'alexnet' ; 
+  case 'caffe-ref', name = 'caffenet' ; 
+end
+
+% ----------------------------------------------------
+function [memStr, units, factor] = readableMemory(mem)
+% ----------------------------------------------------
 % READABLEMEMORY(MEM) convert total raw bytes into more readable summary
 % based on J. Henriques' autonn varDisplay() function
 
-  suffixes = {'B ', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'} ;
+  suffixes = {'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'} ;
   place = floor(log(mem) / log(1024)) ;  % 0-based index into 'suffixes'
   place(mem == 0) = 0 ;  % 0 bytes needs special handling
   num = mem ./ (1024 .^ place) ; memStr = num2str(num, '%.0f') ; 
-  memStr(:,end+1) = ' ' ;
-  memStr = [memStr, char(suffixes{max(1, place + 1)})] ;  
+  memStr(:,end+1) = ' ' ; units = suffixes{max(1, place + 1)} ;
+  memStr = [memStr, char(units)] ; factor = 1024^(max(place,1)) ;
   memStr(isnan(mem),:) = ' ' ;  % leave invalid values blank
 
-% -------------------------------------
-function flopStr = readableFlops(flops)
-% -------------------------------------
+% ------------------------------------------------------
+function [flopStr, units, factor] = readableFlops(flops)
+% ------------------------------------------------------
 % READABLEFLOPS(FLOPS) convert total flops into more readable summary
 
   suffixes = {' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'} ;
   place = floor(log(flops) / log(1000)) ;  % 0-based index into 'suffixes'
   place(flops == 0) = 0 ;  % 0 bytes needs special handling
   num = flops ./ (1000 .^ place) ; flopStr = num2str(num, '%.0f') ; 
-  flopStr(:,end+1) = ' ' ;
-  flopStr = [flopStr, char(suffixes{max(1, place + 1)}) 'FLOPS'] ;  
+  flopStr(:,end+1) = ' ' ; units = suffixes{max(1, place + 1)} ;
+  flopStr = [flopStr, char(units) 'FLOPS'] ; factor = 1000^(max(place,1)) ;
   flopStr(isnan(flops),:) = ' ' ;  % leave invalid values blank
 
 % --------------------------------
@@ -265,7 +318,7 @@ function [mem,flops,lastSz] = computeBurden(net, target, imsz, opts)
         args = [args {'im_info', [imsz 1]}] ;
       end
       net.eval(args, 'test') ; p = feats ; lastSz = size(net.getValue(last)) ;
-      mem = computeMemory(net, p, opts) ; flops = computeFlops(net) ;
+      mem = computeMemory(net, p, opts) ;  flops = computeFlops(net) ;
     otherwise, error('%s not recognised') ;
   end
 
@@ -285,17 +338,15 @@ function mem = computeMemory(net, p, opts)
     case 'double', bytes = 8 ;
     otherwise, error('data type %s not recognised') ;
   end
+  mem = arrayfun(@(x) numel(net.vars{x}), p) * bytes ;
 
-  total = sum(arrayfun(@(x) numel(net.vars{x}), p)) ;
-  mem = total * bytes ;
-
-% ------------------------------------------
-function total = computeFlops(net, varargin) 
-% ------------------------------------------
+% -------------------------------------------
+function totals = computeFlops(net, varargin) 
+% -------------------------------------------
   opts.includeExp = 0 ;
   opts = vl_argparse(opts, varargin) ;
 
-  total = 0 ;
+  totals = zeros(1, numel(net.forward)) ;
   for ii = 1:numel(net.forward)
     layer = net.forward(ii) ;
     ins = gather(net.vars(layer.inputVars)) ;
@@ -345,5 +396,5 @@ function total = computeFlops(net, varargin)
       case 'root', continue
       otherwise, error('layer %s not recognised', func2str(layer.func)) ;
     end
-    total = total + flops ;
+    totals(ii) = flops ;
   end
