@@ -10,10 +10,10 @@
 add_links="false"
 
 function gen_table() {
-# generate markdown table summaries of architectures and give models 
-# more readable names
+# generate markdown table summaries 
 
     res=`cat $1 | grep "MD::" | cut -f 1 -d ' ' --complement`
+    echo "$res"
 
     # clean up dataset prefixes
     res=$(echo "$res" | sed "s/imagenet-//g")
@@ -44,12 +44,6 @@ function gen_table() {
     fi
 }
 
-function gen_html() {
-# generate html detailed summary of feature memory requirements
-  res=`cat $1 | grep "HTML::"  | cut -c 8-`
-  echo "$res"
-}
-
 # point this out the dir containiing outputs of the compute_burdens.m script
 LOGDIR="${HOME}/coding/libs/matconvnets/contrib-matconvnet/data/burden"
 
@@ -63,12 +57,3 @@ do
    echo "|-------|------------|--------------|----------------|-------|"
    gen_table "${LOGDIR}/log-${sfx}.txt"
 done
-
-for sfx in "${tasks[@]}"
-do
-   echo ""
-   echo "HTML:"
-   echo ""
-   gen_html "${LOGDIR}/log-${sfx}.txt"
-done
-
