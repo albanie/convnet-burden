@@ -175,9 +175,10 @@ function name = readableName(modelName)
 name = strrep(modelName, '_', '-') ; % use consistent separators
 name = strrep(name, 'imagenet-', '') ; % clean up prefixes
 name = strrep(name, '-pt-mcn', '') ; % clean up suffixes
-name = strrep(name, '-dag', '') ; % clean up suffixes
+name = strrep(name, '-mcn', '') ; 
+name = strrep(name, '-dag', '') ; 
 name = strrep(name, 'verydeep', 'vd') ; % consistent naming
-name = strrep(name, 'reduced', 'atrous') ; % consistent naming
+name = strrep(name, 'reduced', 'atrous') ; 
 
 switch name % handle special cases
   case 'matconvnet-alex', name = 'alexnet' ; 
