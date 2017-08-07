@@ -48,12 +48,11 @@ Click on the model name for a more detailed breakdown of feature extraction cost
 
 | model | input size | param memory | feature memory | flops |
 |-------|------------|--------------|----------------|-------|
-| faster-rcnn-vggvd-pascal | 600 x 850 | 523 MB | 600 MB | 172 GFLOPS|
-| rfcn-res50-pascal | 600 x 850 | 122 MB | 1 GB | 79 GFLOPS|
-| rfcn-res101-pascal | 600 x 850 | 194 MB | 2 GB | 117 GFLOPS|
-| ssd-pascal-300 | 300 x 300 | 100 MB | 116 MB | 31 GFLOPS|
-| ssd-pascal-512 | 512 x 512 | 104 MB | 337 MB | 91 GFLOPS|
-
+| [rfcn-res50-pascal](reports/rfcn-res50-pascal.md) | 600 x 850 | 122 MB | 1 GB | 79 GFLOPS|
+| [rfcn-res101-pascal](reports/rfcn-res101-pascal.md) | 600 x 850 | 194 MB | 2 GB | 117 GFLOPS|
+| [ssd-pascal-vggvd-300](reports/ssd-pascal-vggvd-300.md) | 300 x 300 | 100 MB | 116 MB | 31 GFLOPS|
+| [ssd-pascal-vggvd-512](reports/ssd-pascal-vggvd-512.md) | 512 x 512 | 104 MB | 337 MB | 91 GFLOPS|
+| [faster-rcnn-vggvd-pascal](reports/faster-rcnn-vggvd-pascal.md) | 600 x 850 | 523 MB | 600 MB | 172 GFLOPS|
 
 The input sizes used are "typical" for each of the architectures listed, but can be varied.  *Anchor/priorbox* generation and *roi/psroi*-pooling are not included in flop estimates.
 
@@ -68,9 +67,9 @@ The input sizes used are "typical" for each of the architectures listed, but can
 
 | model | input size | param memory | feature memory | flops |
 |-------|------------|--------------|----------------|-------|
-| pascal-fcn32s | 384 x 384 | 519 MB | 423 MB | 125 GFLOPS|
-| pascal-fcn16s | 384 x 384 | 514 MB | 424 MB | 125 GFLOPS|
-| pascal-fcn8s | 384 x 384 | 513 MB | 426 MB | 125 GFLOPS|
+| [pascal-fcn32s](reports/pascal-fcn32s.md) | 384 x 384 | 519 MB | 423 MB | 125 GFLOPS|
+| [pascal-fcn16s](reports/pascal-fcn16s.md) | 384 x 384 | 514 MB | 424 MB | 125 GFLOPS|
+| [pascal-fcn8s](reports/pascal-fcn8s.md) | 384 x 384 | 513 MB | 426 MB | 125 GFLOPS|
 
 **References:**
 
@@ -80,9 +79,8 @@ The input sizes used are "typical" for each of the architectures listed, but can
 
 | model | input size | param memory | feature memory | flops |
 |-------|------------|--------------|----------------|-------|
-| multipose-mpi | 368 x 368 | 196 MB | 245 MB | 134 GFLOPS|
-| multipose-coco | 368 x 368 | 200 MB | 246 MB | 136 GFLOPS|
-
+| [multipose-mpi](reports/multipose-mpi.md) | 368 x 368 | 196 MB | 245 MB | 134 GFLOPS|
+| [multipose-coco](reports/multipose-coco.md) | 368 x 368 | 200 MB | 246 MB | 136 GFLOPS|
 
 **References:**
 
@@ -96,6 +94,6 @@ The numbers for each architecture should be reasonably framework agnostic. It is
 
 The numbers should be considered to be rough approximations -  modern hardware makes it very difficult to accurately count operations (and even if you could, pipelining etc. means that it is not necessarily a good estimate of inference time).
 
-The tool for computing the estimates is implemented as a module for the [autonn](https://github.com/vlfeat/autonn) wrapper of matconvnet and is included in this [repo](core/burden.m), so feel free to take a look for extra details.  Matconvnet versionf of all of the models can be downloaded from either [here](http://www.vlfeat.org/matconvnet/pretrained/) or [here](http://www.robots.ox.ac.uk/~albanie/models.html)
+The tool for computing the estimates is implemented as a module for the [autonn](https://github.com/vlfeat/autonn) wrapper of matconvnet and is included in this [repo](core/burden.m), so feel free to take a look for extra details.  Matconvnet versions of all of the models can be obtained from either [here](http://www.vlfeat.org/matconvnet/pretrained/) or [here](http://www.robots.ox.ac.uk/~albanie/models.html).
 
 For further reading on the topic, the 2017 ICLR submission [An analysis of deep neural network models for practical applications](https://openreview.net/pdf?id=Bygq-H9eg) is interesting.  If you find any issues, or would like to add additional models, add an issue/PR.
