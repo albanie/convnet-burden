@@ -31,7 +31,7 @@ The numbers below are given for single element batches.
 | resnext-101-32x4d | 224 x 224 | 169 MB | 197 MB | 8 GFLOPS|
 | resnext-101-64x4d | 224 x 224 | 319 MB | 273 MB | 16 GFLOPS|
 
-See [here]() for more a detailed breakdown of feature extraction costs at different input image/batch sizes if needed.  
+See [here](http://www.robots.ox.ac.uk/~albanie/models.html#convnet-burden) for more a detailed breakdown of feature extraction costs at different input image/batch sizes if needed.  
 
 **References:**
 
@@ -89,8 +89,8 @@ The input sizes used are "typical" for each of the architectures listed, but can
 * [multipose](https://arxiv.org/abs/1611.08050) - *Cao, Zhe, et al. "Realtime multi-person 2d pose estimation using part affinity fields." arXiv preprint arXiv:1611.08050 (2016)..*  
  
  
+<h3>Notes and Assumptions</h3>
 
-### Notes and Assumptions
 
 The numbers for each architecture should be reasonably framework agnostic. It is assumed that all weights and activations are stored as floats (with 4 bytes per datum) and that all relus are performed in-place.  Fused multiply-adds are counted as single operations. 
 
