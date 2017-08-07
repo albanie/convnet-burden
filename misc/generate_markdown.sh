@@ -30,7 +30,6 @@ function gen_table() {
     res=$(echo "$res" | sed "s/_/-/g")
     res=$(echo "$res" | sed "s/-dag//g") 
     res=$(echo "$res" | sed "s/-pt-mcn//g") 
-    #echo "$res"
 
     # add links to download models
     if [ "$add_links" = "true" ] ; then
@@ -45,6 +44,12 @@ function gen_table() {
     fi
 }
 
+function gen_html() {
+# generate html detailed summary of feature memory requirements
+  res=`cat $1 | grep "HTML::"  | cut -c 8-`
+  echo "$res"
+}
+
 # point this out the dir containiing outputs of the compute_burdens.m script
 LOGDIR="${HOME}/coding/libs/matconvnets/contrib-matconvnet/data/burden"
 
@@ -57,5 +62,13 @@ do
    echo "| model | input size | param memory | feature memory | flops | "
    echo "|-------|------------|--------------|----------------|-------|"
    gen_table "${LOGDIR}/log-${sfx}.txt"
+done
+
+for sfx in "${tasks[@]}"
+do
+   echo ""
+   echo "HTML:"
+   echo ""
+   gen_html "${LOGDIR}/log-${sfx}.txt"
 done
 

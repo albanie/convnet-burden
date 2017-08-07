@@ -18,6 +18,12 @@ function compute_burdens(varargin)
 %   `includeKeypointDetectors` :: false
 %    Compute burden estimates for a few keypoint detection architectures.
 %
+%   `logDir` :: fullfile(vl_rootnn, 'data/burden')
+%    Directory location to store logged analysis.
+%
+%   `modelDir` :: fullfile(vl_rootnn, 'data/models-import')
+%    Directory containing models to be analysed.
+%
 % Copyright (C) 2017 Samuel Albanie 
 % Licensed under The MIT License [see LICENSE.md for details]
 
@@ -26,7 +32,7 @@ function compute_burdens(varargin)
   opts.includeSegmenters = false ;
   opts.includeKeypointDetectors = false ;
   opts.logDir = fullfile(vl_rootnn, 'data/burden') ;
-  modelDir = fullfile(vl_rootnn, 'data/models-import') ;
+  opts.modelDir = fullfile(vl_rootnn, 'data/models-import') ;
   opts = vl_argparse(opts, varargin) ;
 
   models = {} ; logName = 'log' ;
@@ -90,7 +96,7 @@ function compute_burdens(varargin)
   diary(logFile) ; diary on ;
 
   for ii = 1:numel(models)
-    modelPath = fullfile(modelDir, models{ii}{1}) ;
+    modelPath = fullfile(opts.modelDir, models{ii}{1}) ;
     burden('modelPath', modelPath, 'imsz', models{ii}{2}) ;
   end
   diary off ;

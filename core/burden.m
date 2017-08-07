@@ -11,6 +11,7 @@ function burden(varargin)
   opts.batchSize = 128 ;
   opts.lastConvFeats = '' ;
   opts.scales = 0.5:0.5:3 ;
+  opts.reportDir = fullfile(vl_rootnn, 'contrib/convnet-burden/reports') ;
   opts.modelPath = 'data/models-import/imagenet-matconvnet-alex.mat' ;
   opts = vl_argparse(opts, varargin) ;
 
@@ -57,6 +58,7 @@ function burden(varargin)
 % --------------------------------------
 function printReport(base, report, opts)
 % --------------------------------------
+  modelName = readableName(opts.modelOpts.name) ;
   header = sprintf('Report for %s\n', opts.modelOpts.name) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf(header) ;
@@ -90,6 +92,42 @@ function printReport(base, report, opts)
   msg = '\nFeature extraction burden at %s with batch size %d: \n\n' ;
   fprintf(msg, opts.modelOpts.lastConvFeats, opts.batchSize) ;
   disp(struct2table(report)) ;
+
+  % generate more detailed reports
+  keyboard
+
+  % produce output for HTML summary
+  header = ['HTML:: <table class="pretrained-models">    \n ' ...
+            'HTML:: <thead>                              \n ' ...
+            'HTML::   <tr>                               \n ' ...
+            'HTML::   <th>model</th>                     \n ' ...
+            'HTML::   <th>input size</th>                \n ' ...
+            'HTML::   <th>flops</th>                     \n ' ...
+            'HTML::   <th>feature memory </th>           \n ' ...
+            'HTML::   <th>feature size </th>             \n ' ...
+            'HTML::   </tr>                              \n ' ...
+            'HTML:: </thead>                             \n ' ...
+            'HTML:: <tbody>                              \n ' ...
+            'HTML:: <tr>                                 \n ' ...
+            ] ;
+  row = ['HTML::   <tr><td> %s </td><td> %s </td><td> %s </td>' ...
+         '<td> %s </td></tr>\n ' ] ;
+  footer = [ ...
+         'HTML:: </tbody>                              \n ' ...
+         'HTML:: </table>                              \n ' ...
+           ] ;
+  fprintf(header) ;
+  for ii = 1:numel(report)
+    rec = report(ii) ;
+    fprintf(row, rec.imsz, rec.flops, rec.featMem, rec.featSz) ;
+  end
+  fprintf(footer) ;
+
+% -------------------------------------
+function name = readableName(modelName)
+% -------------------------------------
+% READABLENAME(MODELNAME) renames the model for easier reading
+keyboard
 
 % -----------------------------------
 function memStr = readableMemory(mem)
