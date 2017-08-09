@@ -4,7 +4,7 @@ function burden(varargin)
 % Copyright (C) 2017 Samuel Albanie
 % Licensed under The MIT License [see LICENSE.md for details]
 
-  opts.gpus = 3 ;
+  opts.gpus = [] ;
   opts.helper = [] ;
   opts.imsz = [224 224] ;
   opts.type = 'single' ;
@@ -228,17 +228,19 @@ function out = toAutonn(net, opts)
 % provide required helper functions for custom architectures
 
   args = {net} ;
-  if strfind(opts.modelOpts.name, 'faster-rcnn')
+  if contains(opts.modelOpts.name, 'faster-rcnn')
     args = [args {@faster_rcnn_autonn_custom_fn}] ;
-  elseif strfind(opts.modelOpts.name, 'ssd')
+  elseif contains(opts.modelOpts.name, 'ssd')
     args = [args {@ssd_autonn_custom_fn}] ;
-  elseif strfind(opts.modelOpts.name, 'rfcn')
+  elseif contains(opts.modelOpts.name, 'rfcn')
     args = [args {@rfcn_autonn_custom_fn}] ;
-  elseif strfind(opts.modelOpts.name, 'squeezenet')
+  elseif contains(opts.modelOpts.name, 'squeezenet')
     args = [args {@squeezenet_autonn_custom_fn}] ;
-  elseif strfind(opts.modelOpts.name, 'resnext')
+  elseif contains(opts.modelOpts.name, 'resnext')
     args = [args {@resnext_autonn_custom_fn}] ;
-  elseif strfind(opts.modelOpts.name, '-fcn')
+  elseif contains(opts.modelOpts.name, 'inception')
+    args = [args {@inception_autonn_custom_fn}] ;
+  elseif contains(opts.modelOpts.name, '-fcn')
     args = [args {@fcn_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
@@ -291,6 +293,7 @@ function last = getLastFullyConv(modelName, opts)
     if contains(modelName, 'vggvd'), last = 'relu4_3' ; end
     if contains(modelName, 'res50'), last = 'res5c_relu' ; end
     if contains(modelName, 'res101'), last = 'res5c_relu' ; end
+  elseif contains(modelName, 'inception'), last = 'features_19' ; 
   else
     keyboard
   end
