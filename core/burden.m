@@ -209,7 +209,7 @@ function [flopStr, units, factor] = readableFlops(flops)
   place(flops == 0) = 0 ;  % 0 bytes needs special handling
   num = flops ./ (1000 .^ place) ; flopStr = num2str(num, '%.0f') ; 
   flopStr(:,end+1) = ' ' ; units = suffixes{max(1, place + 1)} ;
-  flopStr = [flopStr, char(units) 'FLOPS'] ; factor = 1000^(max(place,1)) ;
+  flopStr = [flopStr, char(units) 'FLOPs'] ; factor = 1000^(max(place,1)) ;
   flopStr(isnan(flops),:) = ' ' ;  % leave invalid values blank
 
 % --------------------------------
@@ -236,6 +236,8 @@ function out = toAutonn(net, opts)
     args = [args {@rfcn_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'squeezenet')
     args = [args {@squeezenet_autonn_custom_fn}] ;
+  elseif contains(opts.modelOpts.name, 'SE')
+    args = [args {@se_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'resnext')
     args = [args {@resnext_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'inception')
@@ -294,6 +296,8 @@ function last = getLastFullyConv(modelName, opts)
     if contains(modelName, 'res50'), last = 'res5c_relu' ; end
     if contains(modelName, 'res101'), last = 'res5c_relu' ; end
   elseif contains(modelName, 'inception'), last = 'features_19' ; 
+  elseif contains(modelName, 'SE-BN-Inception'), last = 'inception_5b_scale' ; 
+  elseif contains(modelName, 'SE'), last = 'conv5_3' ; 
   else
     keyboard
   end
@@ -373,6 +377,8 @@ function totals = computeFlops(net, varargin)
         pos = find(cellfun(@(x) isequal(x, 'stride'), layer.args)) ;
         stride = layer.args{pos+1} ;
         flops = 2 * numel(outs{1}) * prod(stride) ;
+      case 'vl_nnglobalpool' % FMA
+        flops = numel(ins{1}) ;
       case 'vl_nnbnorm_wrapper', flops = 0 ; % assume merged at test time
       case 'vl_nnwsum', flops = numel(outs{1}) ; % count fused multiply-adds
       case 'vl_nnreshape', flops = 0 ; % essentially free
@@ -399,6 +405,10 @@ function totals = computeFlops(net, varargin)
         else 
           flops = 0 ; 
         end
+      case 'vl_nnsigmoid' % counting flops for exp is tricky
+        if opts.includeExp, flops = 3*numel(outs{1}) ; else, flops = 0 ; end
+      case 'vl_nnaxpy', flops = 2*numel(outs{1}) ; % use FMA
+      case 'vl_nnscale', flops = numel(outs{1}) ; % use FMA
       case 'root', continue
       otherwise, error('layer %s not recognised', func2str(layer.func)) ;
     end

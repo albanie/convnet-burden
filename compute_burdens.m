@@ -1,8 +1,7 @@
 function compute_burdens(varargin)
 %COMPUTE_BURDENS Compute burden estimates for common architectures
 %   COMPUTE_BURDENS computes estimates of the memory and computational 
-%   requirements of a set of common convolutional neural network architectures.
-%
+%   requirements of a set of common convolutional neural network architectures.  %
 %   COMPUTE_BURDENS(..'name', value) accepts the following 
 %   options:
 %
@@ -59,7 +58,14 @@ function compute_burdens(varargin)
        {'resnext_50_32x4d-pt-mcn.mat', [224 224]},...
        {'resnext_101_32x4d-pt-mcn.mat', [224 224]},...
        {'resnext_101_64x4d-pt-mcn.mat', [224 224]},...
-       {'inception_v3-pt-mcn.mat', [299 299]},...
+       {'inception_v3-pt-mcn.mat', [299 299], 1:0.5:3},... % breaks on small inputs
+       {'SE-ResNet-50-mcn.mat', [224 224]},...
+       {'SE-ResNet-101-mcn.mat', [224 224]},...
+       {'SE-ResNet-152-mcn.mat', [224 224]},...
+       {'SE-ResNeXt-50-32x4d-mcn.mat', [224 224]},...
+       {'SE-ResNeXt-101-32x4d-mcn.mat', [224 224]},...
+       {'SENet-mcn.mat', [224 224]},...
+       {'SE-BN-Inception-mcn.mat', [224 224], 1},... % breaks on most inputs
        } ] ;
     logName = [ logName '-cls'] ;
    end
@@ -97,7 +103,8 @@ function compute_burdens(varargin)
   diary(logFile) ; diary on ;
 
   for ii = 1:numel(models)
+    if numel(models{ii}) == 3, sc = {'scales', models{ii}{3}} ; else, sc = {} ; end
     modelPath = fullfile(opts.modelDir, models{ii}{1}) ;
-    burden('modelPath', modelPath, 'imsz', models{ii}{2}) ;
+    burden('modelPath', modelPath, 'imsz', models{ii}{2}, sc{:}) ;
   end
   diary off ;
