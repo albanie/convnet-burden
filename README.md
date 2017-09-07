@@ -52,6 +52,7 @@ Click on the model name for a more detailed breakdown of feature extraction cost
 * [inception](https://arxiv.org/abs/1512.00567) - *Szegedy, Christian, et al. "Rethinking the inception architecture for computer vision." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2016.*
 * [resnet](https://arxiv.org/abs/1512.03385) - *He, Kaiming, et al. "Deep residual learning for image recognition." Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.*
 * [resnext](https://arxiv.org/abs/1611.05431) - *Xie, Saining, et al. "Aggregated residual transformations for deep neural networks." arXiv preprint arXiv:1611.05431 (2016).*
+* [SENets](https://arxiv.org/abs/1709.01507) - *Jie Hu, Li Shen and Gang Sun. "Squeeze-and-Excitation Networks." arXiv preprint arXiv:1709.01507 (2017).*
 
 ### Object Detection Architectures
 
