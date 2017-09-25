@@ -293,6 +293,7 @@ function last = getLastFullyConv(modelName, opts)
     if contains(modelName, 'vggvd'), last = 'relu4_3' ; end
     if contains(modelName, 'res50'), last = 'res5c_relu' ; end
     if contains(modelName, 'res101'), last = 'res5c_relu' ; end
+    if contains(modelName, 'mobilenet'), last = 'conv17_2_relu' ; end
   elseif contains(modelName, 'inception'), last = 'features_19' ; 
   elseif contains(modelName, 'SE-BN-Inception'), last = 'inception_5b_scale' ; 
   elseif contains(modelName, 'SE'), last = 'conv5_3' ; 
