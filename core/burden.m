@@ -236,14 +236,12 @@ function out = toAutonn(net, opts)
     args = [args {@rfcn_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'squeezenet')
     args = [args {@squeezenet_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, 'SE')
-    args = [args {@se_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'resnext')
     args = [args {@resnext_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'inception')
     args = [args {@inception_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, '-fcn')
-    args = [args {@fcn_autonn_custom_fn}] ;
+  elseif contains(opts.modelOpts.name, {'SE', '-fcn', 'deeplab-'})
+    args = [args {@extras_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
 
@@ -298,6 +296,8 @@ function last = getLastFullyConv(modelName, opts)
   elseif contains(modelName, 'inception'), last = 'features_19' ; 
   elseif contains(modelName, 'SE-BN-Inception'), last = 'inception_5b_scale' ; 
   elseif contains(modelName, 'SE'), last = 'conv5_3' ; 
+  elseif strcmp(modelName, 'deeplab-vggvd-v2'), last = 'fc8_interp' ;
+  elseif strcmp(modelName, 'deeplab-res101-v2'), last = 'fc1_interp' ;
   else
     keyboard
   end
@@ -395,6 +395,8 @@ function totals = computeFlops(net, varargin)
       case 'vl_nnpsroipool', flops = 0 ; % would be too inaccurate
       case 'vl_nnmask', flops = 0 ; % dropout would be removed during inference
       case 'vl_nndropout_wrapper', flops = 0 ; % ditto
+      case 'vl_nninterp', flops = 4 * numel(outs{1}) ;
+      case 'vl_nnmax', flops = numel(outs{1}) * numel(ins) ;
       case {'vl_nnscalenorm', 'vl_nnnormalize'} 
         outSz = size(outs{1}) ; % simplifying assumption: common norm factors
         normFactors = (1 + 1 + 2 * outSz(3)) * prod(outSz(1:2)) ; 

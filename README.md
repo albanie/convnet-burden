@@ -81,6 +81,8 @@ The input sizes used are "typical" for each of the architectures listed, but can
 | [pascal-fcn16s](reports/pascal-fcn16s.md) | 384 x 384 | 514 MB | 424 MB | 125 GFLOPS|
 | [pascal-fcn8s](reports/pascal-fcn8s.md) | 384 x 384 | 513 MB | 426 MB | 125 GFLOPS|
 
+In this case, the input sizes are those which are typically taken as input crops during training.  The *deeplab-res101-v2* model uses multiscale-input, with scales `x1, x0.75, x0.5` (computed relative to the given input size).
+
 **References:**
 
 * [pascal-fcn](http://www.cv-foundation.org/openaccess/content_cvpr_2015/html/Long_Fully_Convolutional_Networks_2015_CVPR_paper.html) - *Long, Jonathan, Evan Shelhamer, and Trevor Darrell. "Fully convolutional networks for semantic segmentation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2015..*  
