@@ -8,7 +8,7 @@ Estimates of memory consumption and FLOP counts for various convolutional neural
 
 The numbers below are given for single element batches. 
 
-| model | input size | param memory | feature memory | flops | src | performance |
+| model | input size | param mem | feat. mem | flops | src | performance |
 |-------|------------|--------------|----------------|-------|-----|-------------|
 | [alexnet](reports/alexnet.md) | 227 x 227 | 233 MB | 3 MB | 727 MFLOPs | MCN | 41.80 / 19.20 |
 | [caffenet](reports/caffenet.md) | 224 x 224 | 233 MB | 3 MB | 724 MFLOPs | MCN | 42.60 / 19.70 |
