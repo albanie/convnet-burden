@@ -62,15 +62,17 @@ Click on the model name for a more detailed breakdown of feature extraction cost
 | [rfcn-res101-pascal](reports/rfcn-res101-pascal.md) | 600 x 850 | 194 MB | 2 GB | 117 GFLOPS|
 | [ssd-pascal-vggvd-300](reports/ssd-pascal-vggvd-300.md) | 300 x 300 | 100 MB | 116 MB | 31 GFLOPS|
 | [ssd-pascal-vggvd-512](reports/ssd-pascal-vggvd-512.md) | 512 x 512 | 104 MB | 337 MB | 91 GFLOPS|
+| [ssd-pascal-mobilenet-ft](reports/ssd-pascal-mobilenet-ft.md) | 300 x 300 | 22 MB | 37 MB | 1 GFLOPs|
 | [faster-rcnn-vggvd-pascal](reports/faster-rcnn-vggvd-pascal.md) | 600 x 850 | 523 MB | 600 MB | 172 GFLOPS|
 
-The input sizes used are "typical" for each of the architectures listed, but can be varied.  *Anchor/priorbox* generation and *roi/psroi*-pooling are not included in flop estimates.
+The input sizes used are "typical" for each of the architectures listed, but can be varied.  *Anchor/priorbox* generation and *roi/psroi*-pooling are not included in flop estimates.  The *ssd-pascal-mobilenet-ft* detector uses the MobileNet feature extractor (the model used here was imported from the architecture made available by [chuanqi305](https://github.com/chuanqi305/MobileNet-SSD)).
 
 **References:**
 
 * [faster-rcnn](http://papers.nips.cc/paper/5638-faster-r-cnn-towards-real-time-object-detection-with-region-proposal-networks) - *Ren, Shaoqing, et al. "Faster R-CNN: Towards real-time object detection with region proposal networks." Advances in neural information processing systems. 2015..*  
 * [r-fcn](https://arxiv.org/abs/1605.06409) - *Li, Yi, Kaiming He, and Jian Sun. "R-fcn: Object detection via region-based fully convolutional networks." Advances in Neural Information Processing Systems. 2016.*
 * [ssd](https://link.springer.com/chapter/10.1007%2F978-3-319-46448-0_2) - *Liu, Wei, et al. "Ssd: Single shot multibox detector." European conference on computer vision. Springer, Cham, 2016.*  
+* [mobilenets](https://arxiv.org/abs/1704.04861) - *Howard, Andrew G., Menglong Zhu, Bo Chen, Dmitry Kalenichenko, Weijun Wang, Tobias Weyand, Marco Andreetto, and Hartwig Adam. "Mobilenets: Efficient convolutional neural networks for mobile vision applications." arXiv preprint arXiv:1704.04861 (2017).*
 
 
 ### Semantic Segmentation Architectures
@@ -80,12 +82,17 @@ The input sizes used are "typical" for each of the architectures listed, but can
 | [pascal-fcn32s](reports/pascal-fcn32s.md) | 384 x 384 | 519 MB | 423 MB | 125 GFLOPS|
 | [pascal-fcn16s](reports/pascal-fcn16s.md) | 384 x 384 | 514 MB | 424 MB | 125 GFLOPS|
 | [pascal-fcn8s](reports/pascal-fcn8s.md) | 384 x 384 | 513 MB | 426 MB | 125 GFLOPS|
+| [deeplab-vggvd-v2](reports/deeplab-vggvd-v2.md) | 513 x 513 | 144 MB | 755 MB | 202 GFLOPs|
+| [deeplab-res101-v2](reports/deeplab-res101-v2.md) | 513 x 513 | 505 MB | 4 GB | 346 GFLOPs|
 
 In this case, the input sizes are those which are typically taken as input crops during training.  The *deeplab-res101-v2* model uses multiscale-input, with scales `x1, x0.75, x0.5` (computed relative to the given input size).
 
 **References:**
 
 * [pascal-fcn](http://www.cv-foundation.org/openaccess/content_cvpr_2015/html/Long_Fully_Convolutional_Networks_2015_CVPR_paper.html) - *Long, Jonathan, Evan Shelhamer, and Trevor Darrell. "Fully convolutional networks for semantic segmentation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2015..*  
+* [deeplab](https://arxiv.org/abs/1606.00915) - *DeepLab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs 
+Liang-Chieh Chen^, George Papandreou^, Iasonas Kokkinos, Kevin Murphy, and Alan L. Yuille (^equal contribution) 
+Transactions on Pattern Analysis and Machine Intelligence (TPAMI)*
 
 ### Keypoint Detection Architectures
 
