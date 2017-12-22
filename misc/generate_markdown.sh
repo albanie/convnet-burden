@@ -5,12 +5,12 @@
 # --------------------------------------------------------
 # convnet-burden
 # Licensed under The MIT License [see LICENSE.md for details]
-# Copyright (C) 2017 Samuel Albanie 
+# Copyright (C) 2017 Samuel Albanie
 # --------------------------------------------------------
 add_links="false"
 
 function gen_table() {
-# generate markdown table summaries 
+# generate markdown table summaries
 
     res=`cat $1 | grep "MD::" | cut -f 1 -d ' ' --complement`
     echo "$res"
@@ -28,15 +28,15 @@ function gen_table() {
 
     # clean up suffixes and mcn notation
     res=$(echo "$res" | sed "s/_/-/g")
-    res=$(echo "$res" | sed "s/-dag//g") 
-    res=$(echo "$res" | sed "s/-pt-mcn//g") 
+    res=$(echo "$res" | sed "s/-dag//g")
+    res=$(echo "$res" | sed "s/-pt-mcn//g")
 
     # add links to download models
     if [ "$add_links" = "true" ] ; then
         mcn_home="(http://www.vlfeat.org/matconvnet/pretrained/)"
         imported="(http://www.robots.ox.ac.uk/~albanie/models.html)"
         res=$(echo "$res" | awk '{$2="\\["$2"\\]" ; print}')
-        res=$(echo "$res" | sed 's/\\/ /g') 
+        res=$(echo "$res" | sed 's/\\/ /g')
         res="${res//]/]$mcn_home}"
         echo "$res"
     else
@@ -44,7 +44,7 @@ function gen_table() {
     fi
 }
 
-# point this out the dir containiing outputs of the compute_burdens.m script
+# point this out the dir containing outputs of the compute_burdens.m script
 LOGDIR="${HOME}/coding/libs/matconvnets/contrib-matconvnet/data/burden"
 
 declare -a tasks=("cls" "det" "seg" "key")
@@ -53,7 +53,7 @@ do
    echo ""
    echo "task: ${sfx}"
    echo ""
-   echo "| model | input size | param memory | feature memory | flops | "
-   echo "|-------|------------|--------------|----------------|-------|"
+   echo "| model | input size | param memory | feature memory | flops | src | performance |"
+   echo "|-------|------------|--------------|----------------|-------|-----|-------------|"
    gen_table "${LOGDIR}/log-${sfx}.txt"
 done

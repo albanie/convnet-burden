@@ -1,6 +1,5 @@
 function burden(varargin)
-%BURDEN compute memory and computational burden of network
-%
+%BURDEN compute memory and computational burden of network %
 % Copyright (C) 2017 Samuel Albanie
 % Licensed under The MIT License [see LICENSE.md for details]
 
@@ -8,6 +7,7 @@ function burden(varargin)
   opts.helper = [] ;
   opts.imsz = [224 224] ;
   opts.type = 'single' ;
+  opts.scores = {} ;
   opts.batchSize = 128 ;
   opts.lastConvFeats = '' ;
   opts.scales = 0.5:0.5:3 ;
@@ -15,20 +15,21 @@ function burden(varargin)
   opts.modelPath = 'data/models-import/imagenet-matconvnet-alex.mat' ;
   opts = vl_argparse(opts, varargin) ;
 
-  useGpu = numel(opts.gpus) > 0 ; dag = loadDagNN(opts) ; 
+  useGpu = numel(opts.gpus) > 0 ; dag = loadDagNN(opts) ;
 
   % set options which are specific to current model
   [~,modelName,~] = fileparts(opts.modelPath) ;
-  modelOpts.name = modelName ; modelOpts.inputVars = dag.getInputs() ; 
-  modelOpts.lastConvFeats = getLastFullyConv(modelName, opts) ; 
+  modelOpts.name = modelName ; modelOpts.inputVars = dag.getInputs() ;
+  modelOpts.lastConvFeats = getLastFullyConv(modelName, opts) ;
   opts.modelOpts = modelOpts ; out = toAutonn(dag, opts) ; net = Net(out{:}) ;
 
   if useGpu, net.move('gpu') ; end
-  imsz = opts.imsz ; 
+  imsz = opts.imsz ;
   baseParams = computeBurden(net, 'params', imsz, opts) ;
   base.paramMem = sum(baseParams) ;
   [featMem,flops] = computeBurden(net, 'full', imsz, opts) ;
   base.featMem = sum(featMem) ; base.flops = sum(flops) ;
+  base.scores = opts.scores ;
   plotProfile(baseParams, featMem, flops, opts) ;
 
   % find fully convolutional component
@@ -62,7 +63,7 @@ function printReport(base, report, opts)
 % --------------------------------------
   modelName = readableName(opts.modelOpts.name) ;
 
-  % produce readable output 
+  % produce readable output
   header = sprintf('Report for %s\n', modelName) ;
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
   fprintf(header) ;
@@ -88,8 +89,9 @@ function printReport(base, report, opts)
   detailedReport = sprintf('reports/%s.md', modelName) ;
   stats = {readableMemory(base.paramMem), ...
            readableMemory(base.featMem), ...
-           readableFlops(base.flops)} ;
-  markdown = 'MD:: | [%s](%s) | %s | %s | %s | %s|\n' ; 
+           readableFlops(base.flops), ...
+           readableScores(base.scores)} ; % note: scores adds two columns
+  markdown = 'MD:: | [%s](%s) | %s | %s | %s | %s | %s |\n' ;
   fprintf(markdown, modelName, detailedReport, baseImsz, stats{:}) ;
 
   fprintf('%s\n', repmat('-', 1, numel(header))) ;
@@ -140,25 +142,25 @@ function printReport(base, report, opts)
 % ----------------------------------------------------
 function plotProfile(baseParams, featMem, flops, opts)
 % ----------------------------------------------------
-  subplot(3,1,1) ; 
+  subplot(3,1,1) ;
   [~,units,factor] = readableMemory(max(baseParams)) ;
   scaledParams = baseParams ./ factor ;
-  bar(scaledParams, 'FaceAlpha', 0.6, 'edgecolor','none') ; 
-  title('Parameter memory profile') ;  set(gca,'xtick',[]) ; 
+  bar(scaledParams, 'FaceAlpha', 0.6, 'edgecolor','none') ;
+  title('Parameter memory profile') ;  set(gca,'xtick',[]) ;
   ylabel(sprintf('memory (%s)', units)) ;
 
-  subplot(3,1,2) ; 
+  subplot(3,1,2) ;
   [~,units,factor] = readableMemory(max(featMem)) ;
   scaledFeats = featMem ./ factor ;
-  bar(scaledFeats, 'FaceAlpha', 0.4, 'FaceColor', 'r', 'edgecolor','none') ; 
-  title('Feature memory profile') ;  set(gca,'xtick',[]) ; 
+  bar(scaledFeats, 'FaceAlpha', 0.4, 'FaceColor', 'r', 'edgecolor','none') ;
+  title('Feature memory profile') ;  set(gca,'xtick',[]) ;
   ylabel(sprintf('memory (%s)', units)) ;
 
-  subplot(3,1,3) ; 
+  subplot(3,1,3) ;
   [~,units,factor] = readableFlops(max(flops)) ;
   scaledFlops = flops ./ factor ;
-  bar(scaledFlops, 'FaceAlpha', 0.3, 'FaceColor', 'm', 'edgecolor','none') ; 
-  title('Flops profile') ;  set(gca,'xtick',[]) ; 
+  bar(scaledFlops, 'FaceAlpha', 0.3, 'FaceColor', 'm', 'edgecolor','none') ;
+  title('Flops profile') ;  set(gca,'xtick',[]) ;
   ylabel(sprintf('%sFLOPS', units)) ; xlabel('depth') ;
   figDir = fullfile(opts.reportDir, 'figs') ;
   if ~exist(figDir, 'dir'), mkdir(figDir) ; end
@@ -169,20 +171,20 @@ function plotProfile(baseParams, featMem, flops, opts)
 % -------------------------------------
 function name = readableName(modelName)
 % -------------------------------------
-% READABLENAME(MODELNAME) renames the model to its canonical name 
+% READABLENAME(MODELNAME) renames the model to its canonical name
 % for easier reading
 
 name = strrep(modelName, '_', '-') ; % use consistent separators
 name = strrep(name, 'imagenet-', '') ; % clean up prefixes
 name = strrep(name, '-pt-mcn', '') ; % clean up suffixes
-name = strrep(name, '-mcn', '') ; 
-name = strrep(name, '-dag', '') ; 
+name = strrep(name, '-mcn', '') ;
+name = strrep(name, '-dag', '') ;
 name = strrep(name, 'verydeep', 'vd') ; % consistent naming
-name = strrep(name, 'reduced', 'atrous') ; 
+name = strrep(name, 'reduced', 'atrous') ;
 
 switch name % handle special cases
-  case 'matconvnet-alex', name = 'alexnet' ; 
-  case 'caffe-ref', name = 'caffenet' ; 
+  case 'matconvnet-alex', name = 'alexnet' ;
+  case 'caffe-ref', name = 'caffenet' ;
 end
 
 % ----------------------------------------------------
@@ -194,10 +196,25 @@ function [memStr, units, factor] = readableMemory(mem)
   suffixes = {'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'} ;
   place = floor(log(mem) / log(1024)) ;  % 0-based index into 'suffixes'
   place(mem == 0) = 0 ;  % 0 bytes needs special handling
-  num = mem ./ (1024 .^ place) ; memStr = num2str(num, '%.0f') ; 
+  num = mem ./ (1024 .^ place) ; memStr = num2str(num, '%.0f') ;
   memStr(:,end+1) = ' ' ; units = suffixes{max(1, place + 1)} ;
   memStr = [memStr, char(units)] ; factor = 1024^(max(place,1)) ;
   memStr(isnan(mem),:) = ' ' ;  % leave invalid values blank
+
+% ------------------------------------------------------
+function scoreStr = readableScores(scores)
+% ------------------------------------------------------
+% READABLESCORES(SCORES) produce a summary string describing model
+% performance
+  format = scores{1} ; res = scores(2:end) ;
+  switch format
+    case 'I'
+      if strcmp(res{1}, 'N/A')
+        scoreStr = 'N/A | - / - ' ;
+      else
+        scoreStr = sprintf('%s | %.2f / %.2f', res{:}) ; % imagenet
+      end
+  end
 
 % ------------------------------------------------------
 function [flopStr, units, factor] = readableFlops(flops)
@@ -207,7 +224,7 @@ function [flopStr, units, factor] = readableFlops(flops)
   suffixes = {' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'} ;
   place = floor(log(flops) / log(1000)) ;  % 0-based index into 'suffixes'
   place(flops == 0) = 0 ;  % 0 bytes needs special handling
-  num = flops ./ (1000 .^ place) ; flopStr = num2str(num, '%.0f') ; 
+  num = flops ./ (1000 .^ place) ; flopStr = num2str(num, '%.0f') ;
   flopStr(:,end+1) = ' ' ; units = suffixes{max(1, place + 1)} ;
   flopStr = [flopStr, char(units) 'FLOPs'] ; factor = 1000^(max(place,1)) ;
   flopStr(isnan(flops),:) = ' ' ;  % leave invalid values blank
@@ -234,13 +251,7 @@ function out = toAutonn(net, opts)
     args = [args {@ssd_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'rfcn')
     args = [args {@rfcn_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, 'squeezenet')
-    args = [args {@squeezenet_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, 'resnext')
-    args = [args {@resnext_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, 'inception')
-    args = [args {@inception_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, {'SE', '-fcn', 'deeplab-'})
+  elseif contains(opts.modelOpts.name, {'SE', '-pt', '-fcn', 'deeplab-'})
     args = [args {@extras_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
@@ -251,7 +262,7 @@ function last = getLastFullyConv(modelName, opts)
 %GETlASTCONV - find the last convolutional layer of the network
 %  GETlASTCONV(OPTS) - looks up the last "fully convolutional"
 %  layer of the network architecture. This is the last layer that can
-%  be computed with any input image size (fully connected layers 
+%  be computed with any input image size (fully connected layers
 %  typically break under varying input sizes).  In this function the
 %  last layer is "looked up" for common architectures as a convenience.
 %  However, the user may also specify the name of the layer output
@@ -273,19 +284,22 @@ function last = getLastFullyConv(modelName, opts)
   resnets = {'imagenet-resnet-50-dag', ...
              'imagenet-resnet-101-dag', ...
              'imagenet-resnet-152-dag'} ;
-  resnexts = {'resnext_50_32x4d-pt-mcn', ...
-              'resnext_101_32x4d-pt-mcn', ...
-              'resnext_101_64x4d-pt-mcn'} ;
+  small_resnets = {'resnet18-pt-mcn'} ;
+  pt_imports = {'resnet34-pt-mcn', ...
+                'resnext_50_32x4d-pt-mcn', ...
+                'resnext_101_32x4d-pt-mcn', ...
+                'resnext_101_64x4d-pt-mcn'} ;
   fcns = {'pascal-fcn32s-dag', 'pascal-fcn16s-dag', 'pascal-fcn8s-dag'} ;
   squeezenets = {'squeezenet1_0-pt-mcn', 'squeezenet1_1-pt-mcn'} ;
-  if ismember(modelName, alexFamily), last = 'pool5' ; 
-  elseif ismember(modelName, resnets), last = 'res5c_relu' ; 
-  elseif ismember(modelName, resnexts), last = 'features_7_2_id_relu' ; 
-  elseif ismember(modelName, squeezenets), last = 'features_12_cat' ; 
+  if ismember(modelName, alexFamily), last = 'pool5' ;
+  elseif ismember(modelName, resnets), last = 'res5c_relu' ;
+  elseif ismember(modelName, small_resnets), last = 'features_7_1_id_relu' ;
+  elseif ismember(modelName, pt_imports), last = 'features_7_2_id_relu' ;
+  elseif ismember(modelName, squeezenets), last = 'features_12_cat' ;
   elseif ismember(modelName, fcns), last = 'score_fr' ;
-  elseif contains(modelName, 'googlenet'), last = 'icp9_out' ; 
-  elseif contains(modelName, 'multipose'), last = 'Mconv6_stage6_L2' ; 
-  elseif contains(modelName, 'faster-rcnn') || contains(modelName, 'rfcn') 
+  elseif contains(modelName, 'googlenet'), last = 'icp9_out' ;
+  elseif contains(modelName, 'multipose'), last = 'Mconv6_stage6_L2' ;
+  elseif contains(modelName, 'faster-rcnn') || contains(modelName, 'rfcn')
     if contains(modelName, 'vggvd'), last = 'relu5_3' ; end
     if contains(modelName, 'res50'), last = 'res5c_relu' ; end
     if contains(modelName, 'res101'), last = 'res5c_relu' ; end
@@ -294,9 +308,9 @@ function last = getLastFullyConv(modelName, opts)
     if contains(modelName, 'res50'), last = 'res5c_relu' ; end
     if contains(modelName, 'res101'), last = 'res5c_relu' ; end
     if contains(modelName, 'mobilenet'), last = 'conv17_2_relu' ; end
-  elseif contains(modelName, 'inception'), last = 'features_19' ; 
-  elseif contains(modelName, 'SE-BN-Inception'), last = 'inception_5b_scale' ; 
-  elseif contains(modelName, 'SE'), last = 'conv5_3' ; 
+  elseif contains(modelName, 'inception'), last = 'features_19' ;
+  elseif contains(modelName, 'SE-BN-Inception'), last = 'inception_5b_scale' ;
+  elseif contains(modelName, 'SE'), last = 'conv5_3' ;
   elseif strcmp(modelName, 'deeplab-vggvd-v2'), last = 'fc8_interp' ;
   elseif strcmp(modelName, 'deeplab-res101-v2'), last = 'fc1_interp' ;
   else
@@ -310,7 +324,7 @@ function last = getLastFullyConv(modelName, opts)
 function [mem,flops,lastSz] = computeBurden(net, target, imsz, opts)
 % -----------------------------------------------------------------
 
-  flops = 0 ; lastSz = [] ; 
+  flops = 0 ; lastSz = [] ;
   last = opts.modelOpts.lastConvFeats ;
   params = [net.params.var] ;
   inputs = cellfun(@(x) net.inputs.(x), fieldnames(net.inputs))' ;
@@ -320,9 +334,9 @@ function [mem,flops,lastSz] = computeBurden(net, target, imsz, opts)
 
   switch target
     case 'params'
-      p = params ; mem = computeMemory(net, p, opts) ; return 
+      p = params ; mem = computeMemory(net, p, opts) ; return
     case {'feats', 'full'}
-      x = zeros([imsz 3], opts.type) ; 
+      x = zeros([imsz 3], opts.type) ;
       if numel(opts.gpus), x = gpuArray(x) ; end
       inVars = opts.modelOpts.inputVars ; args = {inVars{1}, x} ;
       if ismember('im_info', inVars) && strcmp(target, 'full') % handle custom inputs
@@ -352,7 +366,7 @@ function mem = computeMemory(net, p, opts)
   mem = arrayfun(@(x) numel(net.vars{x}), p) * bytes ;
 
 % -------------------------------------------
-function totals = computeFlops(net, varargin) 
+function totals = computeFlops(net, varargin)
 % -------------------------------------------
   opts.includeExp = 0 ;
   opts = vl_argparse(opts, varargin) ;
@@ -368,7 +382,7 @@ function totals = computeFlops(net, varargin)
         hasBias = (numel(ins) == 3) ;
         flops = numel(outs{1}) * numel(ins{2}(:,:,:,1)) ;
         if hasBias, flops = flops + numel(outs{1}) ; end
-      case 'vl_nnconvt' 
+      case 'vl_nnconvt'
         hasBias = (numel(ins) == 3) ;
         flops = numel(ins{1}) * numel(ins{2}(:,:,1,:)) ;
         if hasBias, flops = flops + numel(outs{1}) ; end
@@ -398,15 +412,15 @@ function totals = computeFlops(net, varargin)
       case 'vl_nndropout_wrapper', flops = 0 ; % ditto
       case 'vl_nninterp', flops = 4 * numel(outs{1}) ;
       case 'vl_nnmax', flops = numel(outs{1}) * numel(ins) ;
-      case {'vl_nnscalenorm', 'vl_nnnormalize'} 
+      case {'vl_nnscalenorm', 'vl_nnnormalize'}
         outSz = size(outs{1}) ; % simplifying assumption: common norm factors
-        normFactors = (1 + 1 + 2 * outSz(3)) * prod(outSz(1:2)) ; 
+        normFactors = (1 + 1 + 2 * outSz(3)) * prod(outSz(1:2)) ;
         flops = numel(outs{1}) + normFactors ;
       case {'vl_nnsoftmax', 'vl_nnsoftmaxt'} % counting flops for exp is tricky
         if opts.includeExp
           flops = (2+1+5+1+2)*numel(outs{1}) ;
-        else 
-          flops = 0 ; 
+        else
+          flops = 0 ;
         end
       case 'vl_nnsigmoid' % counting flops for exp is tricky
         if opts.includeExp, flops = 3*numel(outs{1}) ; else, flops = 0 ; end
