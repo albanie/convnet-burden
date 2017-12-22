@@ -53,7 +53,7 @@ do
    echo ""
    echo "task: ${sfx}"
    echo ""
-   echo "| model | input size | param memory | feature memory | flops | src | performance |"
-   echo "|-------|------------|--------------|----------------|-------|-----|-------------|"
+   echo "| model | input size | param mem | feat. mem | flops | src | performance |"
+   echo "|-------|------------|-----------|-----------|-------|-----|-------------|"
    gen_table "${LOGDIR}/log-${sfx}.txt"
 done
