@@ -313,6 +313,7 @@ function last = getLastFullyConv(modelName, opts)
   elseif contains(modelName, 'SE'), last = 'conv5_3' ;
   elseif strcmp(modelName, 'deeplab-vggvd-v2'), last = 'fc8_interp' ;
   elseif strcmp(modelName, 'deeplab-res101-v2'), last = 'fc1_interp' ;
+  elseif contains(modelName, 'densenet'), last = 'features_2' ;
   else
     keyboard
   end
