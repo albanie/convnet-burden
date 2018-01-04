@@ -1,7 +1,7 @@
 convnet-burden
 ---
 
-Estimates of memory consumption and FLOP counts for various convolutional neural networks.    
+Estimates of memory consumption and FLOP counts for various convolutional neural networks.
 
 
 ### Image Classification Architectures
@@ -50,7 +50,7 @@ Click on the model name for a more detailed breakdown of feature extraction cost
 * [L1](https://github.com/albanie/mcnPyTorch/blob/master/benchmarks/cnn_imagenet_pt_mcn.m) - evaluated locally (follow link to view benchmark code).
 
 
-These numbers provide an estimate of performance, but note that there may be small differences between the evaluation scripts from different sources.   
+These numbers provide an estimate of performance, but note that there may be small differences between the evaluation scripts from different sources.
 
 **References:**
 
@@ -82,7 +82,7 @@ The input sizes used are "typical" for each of the architectures listed, but can
 
 * [faster-rcnn](http://papers.nips.cc/paper/5638-faster-r-cnn-towards-real-time-object-detection-with-region-proposal-networks) - *Ren, Shaoqing, et al. "Faster R-CNN: Towards real-time object detection with region proposal networks." Advances in neural information processing systems. 2015..*  
 * [r-fcn](https://arxiv.org/abs/1605.06409) - *Li, Yi, Kaiming He, and Jian Sun. "R-fcn: Object detection via region-based fully convolutional networks." Advances in Neural Information Processing Systems. 2016.*
-* [ssd](https://link.springer.com/chapter/10.1007%2F978-3-319-46448-0_2) - *Liu, Wei, et al. "Ssd: Single shot multibox detector." European conference on computer vision. Springer, Cham, 2016.*  
+* [ssd](https://link.springer.com/chapter/10.1007%2F978-3-319-46448-0_2) - *Liu, Wei, et al. "Ssd: Single shot multibox detector." European conference on computer vision. Springer, Cham, 2016.*
 * [mobilenets](https://arxiv.org/abs/1704.04861) - *Howard, Andrew G., Menglong Zhu, Bo Chen, Dmitry Kalenichenko, Weijun Wang, Tobias Weyand, Marco Andreetto, and Hartwig Adam. "Mobilenets: Efficient convolutional neural networks for mobile vision applications." arXiv preprint arXiv:1704.04861 (2017).*
 
 
@@ -96,13 +96,13 @@ The input sizes used are "typical" for each of the architectures listed, but can
 | [deeplab-vggvd-v2](reports/deeplab-vggvd-v2.md) | 513 x 513 | 144 MB | 755 MB | 202 GFLOPs|
 | [deeplab-res101-v2](reports/deeplab-res101-v2.md) | 513 x 513 | 505 MB | 4 GB | 346 GFLOPs|
 
-In this case, the input sizes are those which are typically taken as input crops during training.  The *deeplab-res101-v2* model uses multiscale-input, with scales `x1, x0.75, x0.5` (computed relative to the given input size).
+In this case, the input sizes are those which are typically taken as input crops during training.  The *deeplab-res101-v2* model uses multi-scale input, with scales `x1, x0.75, x0.5` (computed relative to the given input size).
 
 **References:**
 
-* [pascal-fcn](http://www.cv-foundation.org/openaccess/content_cvpr_2015/html/Long_Fully_Convolutional_Networks_2015_CVPR_paper.html) - *Long, Jonathan, Evan Shelhamer, and Trevor Darrell. "Fully convolutional networks for semantic segmentation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2015..*  
-* [deeplab](https://arxiv.org/abs/1606.00915) - *DeepLab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs 
-Liang-Chieh Chen^, George Papandreou^, Iasonas Kokkinos, Kevin Murphy, and Alan L. Yuille (^equal contribution) 
+* [pascal-fcn](http://www.cv-foundation.org/openaccess/content_cvpr_2015/html/Long_Fully_Convolutional_Networks_2015_CVPR_paper.html) - *Long, Jonathan, Evan Shelhamer, and Trevor Darrell. "Fully convolutional networks for semantic segmentation." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2015..*
+* [deeplab](https://arxiv.org/abs/1606.00915) - *DeepLab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs
+Liang-Chieh Chen^, George Papandreou^, Iasonas Kokkinos, Kevin Murphy, and Alan L. Yuille (^equal contribution)
 Transactions on Pattern Analysis and Machine Intelligence (TPAMI)*
 
 ### Keypoint Detection Architectures
@@ -114,16 +114,16 @@ Transactions on Pattern Analysis and Machine Intelligence (TPAMI)*
 
 **References:**
 
-* [multipose](https://arxiv.org/abs/1611.08050) - *Cao, Zhe, et al. "Realtime multi-person 2d pose estimation using part affinity fields." arXiv preprint arXiv:1611.08050 (2016)..*  
- 
- 
+* [multipose](https://arxiv.org/abs/1611.08050) - *Cao, Zhe, et al. "Realtime multi-person 2d pose estimation using part affinity fields." arXiv preprint arXiv:1611.08050 (2016)..*
+
+
 <h3>Notes and Assumptions</h3>
 
 
-The numbers for each architecture should be reasonably framework agnostic. It is assumed that all weights and activations are stored as floats (with 4 bytes per datum) and that all relus are performed in-place.  Fused multiply-adds are counted as single operations. 
+The numbers for each architecture should be reasonably framework agnostic. It is assumed that all weights and activations are stored as floats (with 4 bytes per datum) and that all relus are performed in-place.  Fused multiply-adds are counted as single operations.
 
 The numbers should be considered to be rough approximations -  modern hardware makes it very difficult to accurately count operations (and even if you could, pipelining etc. means that it is not necessarily a good estimate of inference time).
 
-The tool for computing the estimates is implemented as a module for the [autonn](https://github.com/vlfeat/autonn) wrapper of matconvnet and is included in this [repo](core/burden.m), so feel free to take a look for extra details.  This module can be installed with the `vl_contrib` package manager (it has two dependencies which can be installed in a similar manner: [autonn](https://github.com/vlfeat/autonn) and [mcnExtraLayers](https://github.com/albanie/mcnExtraLayers)). Matconvnet versions of all of the models can be obtained from either [here](http://www.vlfeat.org/matconvnet/pretrained/) or [here](http://www.robots.ox.ac.uk/~albanie/models.html).  
+The tool for computing the estimates is implemented as a module for the [autonn](https://github.com/vlfeat/autonn) wrapper of matconvnet and is included in this [repo](core/burden.m), so feel free to take a look for extra details.  This module can be installed with the `vl_contrib` package manager (it has two dependencies which can be installed in a similar manner: [autonn](https://github.com/vlfeat/autonn) and [mcnExtraLayers](https://github.com/albanie/mcnExtraLayers)). Matconvnet versions of all of the models can be obtained from either [here](http://www.vlfeat.org/matconvnet/pretrained/) or [here](http://www.robots.ox.ac.uk/~albanie/mcn-models.html).
 
 For further reading on the topic, the 2017 ICLR submission [An analysis of deep neural network models for practical applications](https://openreview.net/pdf?id=Bygq-H9eg) is interesting.  If you find any issues, or would like to add additional models, add an issue/PR.
