@@ -40,6 +40,10 @@ The numbers below are given for single element batches.
 | [SE-ResNeXt-101-32x4d](reports/SE-ResNeXt-101-32x4d.md) | 224 x 224 | 187 MB | 197 MB | 8 GFLOPs | SE | 19.81 / 4.96 |
 | [SENet](reports/SENet.md) | 224 x 224 | 440 MB | 347 MB | 21 GFLOPs | SE | 18.68 / 4.47 |
 | [SE-BN-Inception](reports/SE-BN-Inception.md) | 224 x 224 | 46 MB | 43 MB | 2 GFLOPs | SE | 23.62 / 7.04 |
+| [densenet121](reports/densenet121.md) | 224 x 224 | 31 MB | 126 MB | 3 GFLOPs | PT | 25.35 / 7.83 |
+| [densenet161](reports/densenet161.md) | 224 x 224 | 110 MB | 235 MB | 8 GFLOPs | PT | 22.35 / 6.20 |
+| [densenet169](reports/densenet169.md) | 224 x 224 | 55 MB | 152 MB | 3 GFLOPs | PT | 24.00 / 7.00 |
+| [densenet201](reports/densenet201.md) | 224 x 224 | 77 MB | 196 MB | 4 GFLOPs | PT | 22.80 / 6.43 |
 
 
 Click on the model name for a more detailed breakdown of feature extraction costs at different input image/batch sizes if needed.  The performance numbers are reported as `top-1 error/top-5 error` on the 2012 ILSVRC validation data.  The `src` column indicates the source of the benchmark scores using the following abberviations:
@@ -64,6 +68,7 @@ These numbers provide an estimate of performance, but note that there may be sma
 * [resnet](https://arxiv.org/abs/1512.03385) - *He, Kaiming, et al. "Deep residual learning for image recognition." Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.*
 * [resnext](https://arxiv.org/abs/1611.05431) - *Xie, Saining, et al. "Aggregated residual transformations for deep neural networks." arXiv preprint arXiv:1611.05431 (2016).*
 * [SENets](https://arxiv.org/abs/1709.01507) - *Jie Hu, Li Shen and Gang Sun. "Squeeze-and-Excitation Networks." arXiv preprint arXiv:1709.01507 (2017).*
+* [Densenet](https://arxiv.org/abs/1608.06993) - *Huang, Gao, et al. "Densely connected convolutional networks." CVPR, (2017).*
 
 ### Object Detection Architectures
 
