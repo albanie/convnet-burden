@@ -3,7 +3,7 @@ function burden(varargin)
 % Copyright (C) 2017 Samuel Albanie
 % Licensed under The MIT License [see LICENSE.md for details]
 
-  opts.gpus = [] ;
+  opts.gpus = 1 ;
   opts.helper = [] ;
   opts.imsz = [224 224] ;
   opts.type = 'single' ;
