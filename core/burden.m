@@ -212,7 +212,18 @@ function scoreStr = readableScores(scores)
       if strcmp(res{1}, 'N/A')
         scoreStr = 'N/A | - / - ' ;
       else
-        scoreStr = sprintf('%s | %.2f / %.2f', res{:}) ; % imagenet
+        template = '%s |' ;
+        if isa(res{2}, 'double')
+          template = [template ' %.2f'] ;
+        else
+          template = [template ' %s'] ;
+        end
+        if isa(res{3}, 'double')
+          template = [template ' / %.2f'] ;
+        else
+          template = [template ' / %s'] ;
+        end
+        scoreStr = sprintf(template, res{:}) ; % imagenet
       end
   end
 
@@ -251,7 +262,8 @@ function out = toAutonn(net, opts)
     args = [args {@ssd_autonn_custom_fn}] ;
   elseif contains(opts.modelOpts.name, 'rfcn')
     args = [args {@rfcn_autonn_custom_fn}] ;
-  elseif contains(opts.modelOpts.name, {'SE', '-pt', '-fcn', 'deeplab-'})
+  %elsef contains(opts.modelOpts.name, {'SE', '-pt', '-fcn', 'deeplab-'})
+  else
     args = [args {@extras_autonn_custom_fn}] ;
   end
   out = Layer.fromDagNN(args{:}) ;
@@ -314,6 +326,7 @@ function last = getLastFullyConv(modelName, opts)
   elseif strcmp(modelName, 'deeplab-vggvd-v2'), last = 'fc8_interp' ;
   elseif strcmp(modelName, 'deeplab-res101-v2'), last = 'fc1_interp' ;
   elseif contains(modelName, 'densenet'), last = 'features_2' ;
+  elseif contains(modelName, 'mcn-mobilenet'), last = 'fc7' ;
   else
     keyboard
   end

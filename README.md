@@ -44,14 +44,16 @@ The numbers below are given for single element batches.
 | [densenet161](reports/densenet161.md) | 224 x 224 | 110 MB | 235 MB | 8 GFLOPs | PT | 22.35 / 6.20 |
 | [densenet169](reports/densenet169.md) | 224 x 224 | 55 MB | 152 MB | 3 GFLOPs | PT | 24.00 / 7.00 |
 | [densenet201](reports/densenet201.md) | 224 x 224 | 77 MB | 196 MB | 4 GFLOPs | PT | 22.80 / 6.43 |
+| [mcn-mobilenet](reports/mcn-mobilenet.md) | 224 x 224 | 16 MB | 38 MB | 579 MFLOPs | AU | 29.40 / 45.00 |
+| [mcn-mobilenet-v2](reports/mcn-mobilenet-v2.md) | 224 x 224 | 14 MB | 69 MB | 446 MFLOPs | AU | 29.40 / - |
 
 
 Click on the model name for a more detailed breakdown of feature extraction costs at different input image/batch sizes if needed.  The performance numbers are reported as `top-1 error/top-5 error` on the 2012 ILSVRC validation data.  The `src` column indicates the source of the benchmark scores using the following abberviations:
 
 * [MCN](http://www.vlfeat.org/matconvnet/pretrained/) - scores obtained from the matconvnet website.
 * [PT](http://pytorch.org/docs/master/torchvision/models.html) - scores obtained from the PyTorch torchvision module.
-* [SE](https://github.com/hujie-frank/SENet) - numbers reported by Squeeze-and-Excitation Networks authors.
 * [L1](https://github.com/albanie/mcnPyTorch/blob/master/benchmarks/cnn_imagenet_pt_mcn.m) - evaluated locally (follow link to view benchmark code).
+* AU - numbers reported by the paper authors.
 
 
 These numbers provide an estimate of performance, but note that there may be small differences between the evaluation scripts from different sources.

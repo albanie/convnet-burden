@@ -45,7 +45,7 @@ function gen_table() {
 }
 
 # point this out the dir containing outputs of the compute_burdens.m script
-LOGDIR="${HOME}/coding/libs/matconvnets/contrib-matconvnet/data/burden"
+LOGDIR="${HOME}/coding/libs/mcn/contrib-matconvnet/data/burden"
 
 declare -a tasks=("cls" "det" "seg" "key")
 for sfx in "${tasks[@]}"
